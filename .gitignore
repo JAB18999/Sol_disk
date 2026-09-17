@@ -1,0 +1,6 @@
+# Generated convenience exports; raw CSV is intentionally versioned.
+*.xlsx
+*.zip
+__pycache__/
+*.py[cod]
+.DS_Store
