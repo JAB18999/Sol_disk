@@ -1,12 +1,16 @@
 #!/usr/bin/env python3
-"""Incrementally maintain OKX SOL-USDT-SWAP OHLCV CSV files.
+"""Incrementally maintain OKX SOL-USDT-SWAP OHLCV CSV files in Beijing time.
 
 Normal mode reads the repository's existing CSV files, retrieves only a recent
 300-bar overlap from OKX for each timeframe, merges newly closed candles,
 validates continuity, and retains the latest 8,640 completed candles.
 
+All human-readable timestamps written by this script use Asia/Shanghai
+(Beijing time, UTC+08:00). `timestamp_ms` remains a Unix-epoch millisecond
+identifier: it is timezone-independent and must not be shifted by eight hours.
+
 If a CSV is missing, invalid, or too far behind the recent API window, the
-script safely falls back to a full 8,640-bar historical backfill.  It uses a
+script safely falls back to a full 8,640-bar historical backfill. It uses a
 single-process lock, conservative request pacing, bounded retries, 429-aware
 backoff, and atomic output replacement.
 
@@ -29,7 +33,7 @@ import time
 import urllib.error
 import urllib.parse
 import urllib.request
-from dataclasses import asdict, dataclass
+from dataclasses import dataclass
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
@@ -39,8 +43,10 @@ ROOT = Path(__file__).resolve().parent
 INSTRUMENT = "SOL-USDT-SWAP"
 COUNT = 8640
 RECENT_LIMIT = 300
+BEIJING_TIMEZONE_NAME = "Asia/Shanghai"
+BEIJING_TIMEZONE = ZoneInfo(BEIJING_TIMEZONE_NAME)
 # Conservative process-wide pace: 4 requests/sec, well below the documented
-# history-candle limit of 20 requests/2 seconds.  This includes retries.
+# history-candle limit of 20 requests/2 seconds. This includes retries.
 MIN_REQUEST_INTERVAL_SECONDS = 0.25
 MAX_RETRIES = 6
 LOCK_FILE = ROOT / ".okx_candle_update.lock"
@@ -56,10 +62,24 @@ LATEST_API = "https://www.okx.com/api/v5/market/candles"
 HISTORY_API = "https://www.okx.com/api/v5/market/history-candles"
 HEADERS = {
     # Keep a stable, identifiable client name. Do not rotate user agents or IPs.
-    "User-Agent": "Mozilla/5.0 (compatible; SOL-disk-incremental-updater/1.0; +https://github.com/JAB18999/Sol_disk)",
+    "User-Agent": "Mozilla/5.0 (compatible; SOL-disk-incremental-updater/1.1; +https://github.com/JAB18999/Sol_disk)",
     "Accept": "application/json",
 }
 CSV_HEADER = [
+    "open_time_beijing",
+    "timestamp_ms",
+    "open",
+    "high",
+    "low",
+    "close",
+    "vol",
+    "volCcy",
+    "volCcyQuote",
+    "confirm",
+]
+# Read-only migration support for the schema committed before Beijing-time
+# unification. Legacy rows are rewritten with the new single display column.
+LEGACY_CSV_HEADER = [
     "open_time_utc",
     "open_time_shanghai",
     "timestamp_ms",
@@ -118,7 +138,7 @@ class UpdateLock:
             try:
                 fd = os.open(self.path, os.O_CREAT | os.O_EXCL | os.O_WRONLY, 0o600)
                 with os.fdopen(fd, "w", encoding="utf-8") as lock:
-                    lock.write(json.dumps({"pid": os.getpid(), "started_at_utc": utc_now()}, ensure_ascii=False))
+                    lock.write(json.dumps({"pid": os.getpid(), "started_at_beijing": beijing_now()}, ensure_ascii=False))
                 self.held = True
                 return self
             except FileExistsError:
@@ -137,14 +157,15 @@ class UpdateLock:
             self.path.unlink(missing_ok=True)
 
 
-def utc_now() -> str:
-    return datetime.now(timezone.utc).isoformat().replace("+00:00", "Z")
+def beijing_now() -> str:
+    """Return a timezone-explicit Beijing timestamp for all human-readable metadata."""
+    return datetime.now(timezone.utc).astimezone(BEIJING_TIMEZONE).isoformat()
 
 
-def iso_times(timestamp_ms: int) -> tuple[str, str]:
-    utc = datetime.fromtimestamp(timestamp_ms / 1000, tz=timezone.utc)
-    shanghai = utc.astimezone(ZoneInfo("Asia/Shanghai"))
-    return utc.isoformat().replace("+00:00", "Z"), shanghai.isoformat()
+def beijing_time(timestamp_ms: int) -> str:
+    """Render an absolute Unix timestamp in Asia/Shanghai without altering the epoch value."""
+    instant = datetime.fromtimestamp(timestamp_ms / 1000, tz=timezone.utc)
+    return instant.astimezone(BEIJING_TIMEZONE).isoformat()
 
 
 def parse_retry_after(headers: Any) -> float | None:
@@ -228,10 +249,8 @@ def api_candle_to_row(candle: list[str]) -> dict[str, str]:
         raise DataValidationError(f"Unexpected OKX candle schema: {candle!r}")
     ts, open_price, high, low, close, vol, vol_ccy, vol_ccy_quote, confirm = candle[:9]
     timestamp_ms = int(ts)
-    open_time_utc, open_time_shanghai = iso_times(timestamp_ms)
     return {
-        "open_time_utc": open_time_utc,
-        "open_time_shanghai": open_time_shanghai,
+        "open_time_beijing": beijing_time(timestamp_ms),
         "timestamp_ms": str(timestamp_ms),
         "open": str(open_price),
         "high": str(high),
@@ -288,16 +307,44 @@ def fetch_full_history(client: OKXPublicClient, bar: str) -> list[dict[str, str]
     return sorted(rows, key=lambda row: int(row["timestamp_ms"]))
 
 
-def read_existing_csv(path: Path, expected_step_ms: int) -> list[dict[str, str]]:
+def read_existing_csv(path: Path, expected_step_ms: int) -> tuple[list[dict[str, str]], bool]:
+    """Read the current schema or migrate a legacy UTC/Shanghai display schema in memory."""
     if not path.exists():
         raise DataValidationError(f"Missing file: {path.name}")
-    with path.open("r", newline="", encoding="utf-8") as source:
-        reader = csv.DictReader(source)
-        if reader.fieldnames != CSV_HEADER:
-            raise DataValidationError(f"Unexpected CSV header in {path.name}: {reader.fieldnames}")
-        rows = [{column: row[column] for column in CSV_HEADER} for row in reader]
+
+    try:
+        with path.open("r", newline="", encoding="utf-8") as source:
+            reader = csv.DictReader(source)
+            fieldnames = reader.fieldnames
+            if fieldnames == CSV_HEADER:
+                rows = [{column: row[column] for column in CSV_HEADER} for row in reader]
+                migrated_legacy_schema = False
+            elif fieldnames == LEGACY_CSV_HEADER:
+                rows = []
+                for old_row in reader:
+                    timestamp_ms = int(old_row["timestamp_ms"])
+                    rows.append(
+                        {
+                            "open_time_beijing": beijing_time(timestamp_ms),
+                            "timestamp_ms": str(timestamp_ms),
+                            "open": old_row["open"],
+                            "high": old_row["high"],
+                            "low": old_row["low"],
+                            "close": old_row["close"],
+                            "vol": old_row["vol"],
+                            "volCcy": old_row["volCcy"],
+                            "volCcyQuote": old_row["volCcyQuote"],
+                            "confirm": old_row["confirm"],
+                        }
+                    )
+                migrated_legacy_schema = True
+            else:
+                raise DataValidationError(f"Unexpected CSV header in {path.name}: {fieldnames}")
+    except (OSError, KeyError, TypeError, ValueError) as exc:
+        raise DataValidationError(f"Unable to read a valid CSV schema from {path.name}") from exc
+
     validate_rows(rows, expected_step_ms, COUNT)
-    return rows
+    return rows, migrated_legacy_schema
 
 
 def validate_rows(rows: list[dict[str, str]], expected_step_ms: int, expected_count: int) -> None:
@@ -310,6 +357,11 @@ def validate_rows(rows: list[dict[str, str]], expected_step_ms: int, expected_co
             raise DataValidationError("Dataset contains an unconfirmed candle")
         try:
             timestamp = int(row["timestamp_ms"])
+            expected_beijing = beijing_time(timestamp)
+            if row["open_time_beijing"] != expected_beijing:
+                raise DataValidationError(
+                    f"Beijing display time disagrees with timestamp_ms at {row['timestamp_ms']}"
+                )
             # Validate numeric fields without changing the raw API values.
             for field in ("open", "high", "low", "close", "vol", "volCcy", "volCcyQuote"):
                 float(row[field])
@@ -422,10 +474,12 @@ def update_timeframe(client: OKXPublicClient, bar: str, expected_step_ms: int, f
 
     if not force_full:
         try:
-            existing = read_existing_csv(path, expected_step_ms)
+            existing, legacy_schema = read_existing_csv(path, expected_step_ms)
             recent = fetch_recent_confirmed(client, bar)
             candidate, new_count, revised_count, reason = merge_recent(existing, recent, expected_step_ms)
-            changed = row_signature(candidate) != row_signature(existing)
+            changed = legacy_schema or row_signature(candidate) != row_signature(existing)
+            if legacy_schema and reason == "incremental_recent_overlap":
+                reason = "legacy_timezone_schema_migration_plus_recent_overlap"
             return UpdateResult(
                 bar=bar,
                 rows=candidate,
@@ -490,10 +544,8 @@ def build_metadata(results: list[UpdateResult], previous_metadata: dict[str, Any
             "row_count": len(result.rows),
             "start_timestamp_ms": str(timestamps[0]),
             "end_timestamp_ms": str(timestamps[-1]),
-            "start_time_utc": result.rows[0]["open_time_utc"],
-            "end_time_utc": result.rows[-1]["open_time_utc"],
-            "start_time_shanghai": result.rows[0]["open_time_shanghai"],
-            "end_time_shanghai": result.rows[-1]["open_time_shanghai"],
+            "start_time_beijing": result.rows[0]["open_time_beijing"],
+            "end_time_beijing": result.rows[-1]["open_time_beijing"],
             "expected_step_ms": step_ms,
             "unique_timestamp_count": len(set(timestamps)),
             "interval_anomaly_count": 0,
@@ -509,15 +561,21 @@ def build_metadata(results: list[UpdateResult], previous_metadata: dict[str, Any
         }
 
     metadata: dict[str, Any] = {
-        "schema_version": "2.0",
+        "schema_version": "3.0",
         "instrument": INSTRUMENT,
         "instrument_type": "USDT-margined perpetual swap",
+        "timezone": {
+            "name": BEIJING_TIMEZONE_NAME,
+            "offset": "+08:00",
+            "human_readable_timestamp_column": "open_time_beijing",
+            "note": "All human-readable timestamps in this repository are Beijing time. timestamp_ms is a timezone-independent Unix epoch value.",
+        },
         "source_endpoints": {
             "incremental": LATEST_API,
             "bootstrap_or_gap_recovery": HISTORY_API,
         },
         "completed_candles_only": True,
-        "sort_order": "ascending by candle open timestamp",
+        "sort_order": "ascending by candle open timestamp; human-readable display is Asia/Shanghai",
         "requested_rows_per_timeframe": COUNT,
         "recent_overlap_limit": RECENT_LIMIT,
         "rate_limit_policy": {
@@ -525,7 +583,7 @@ def build_metadata(results: list[UpdateResult], previous_metadata: dict[str, Any
             "max_retries": MAX_RETRIES,
             "note": "Single-process pacing, Retry-After-aware retry, and no proxy/user-agent rotation.",
         },
-        "last_successful_data_update_utc": utc_now(),
+        "last_successful_data_update_beijing": beijing_now(),
         "timeframes": timeframes,
     }
     # Preserve the original instrument snapshot if a prior full-download metadata file has one.
@@ -535,7 +593,7 @@ def build_metadata(results: list[UpdateResult], previous_metadata: dict[str, Any
 
 
 def parse_args() -> argparse.Namespace:
-    parser = argparse.ArgumentParser(description="Incrementally update OKX SOL-USDT-SWAP candle CSV data.")
+    parser = argparse.ArgumentParser(description="Incrementally update OKX SOL-USDT-SWAP candle CSV data in Beijing time.")
     parser.add_argument(
         "--full-refresh",
         action="store_true",
@@ -571,7 +629,7 @@ def main() -> int:
             )
 
         data_changed = any(result.changed for result in results)
-        metadata_needs_migration = previous_metadata.get("schema_version") != "2.0"
+        metadata_needs_migration = previous_metadata.get("schema_version") != "3.0"
         should_write_metadata = data_changed or metadata_needs_migration
 
         if args.dry_run:
@@ -590,9 +648,9 @@ def main() -> int:
             atomic_write_json(metadata_path, metadata)
 
         if data_changed:
-            print("Update complete: changed datasets and metadata were written atomically.", flush=True)
+            print("Update complete: Beijing-time datasets and metadata were written atomically.", flush=True)
         elif metadata_needs_migration:
-            print("No candle changes; metadata schema was migrated.", flush=True)
+            print("No candle changes; Beijing-time metadata schema was migrated.", flush=True)
         else:
             print("No new or revised completed candles; repository data was left unchanged.", flush=True)
 

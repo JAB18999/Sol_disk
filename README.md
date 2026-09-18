@@ -2,7 +2,8 @@
 
 本仓库保存 OKX `SOL-USDT-SWAP`（SOL USDT 本位永续合约）的已收盘 OHLCV K 线数据，并通过 GitHub Actions 每 2 小时增量更新一次。
 
-> 数据源：OKX Public API。K 线仅用于研究、回测和数据分析，不构成交易建议或收益保证。
+> **时区标准：本仓库全部可读时间均使用北京时间（Asia/Shanghai，UTC+08:00）。**
+> 数据仅用于研究、回测和分析，不构成交易建议或收益保证。
 
 ## 数据文件
 
@@ -15,20 +16,24 @@
 | 1 小时 | `SOL-USDT-SWAP_1H_8640_confirmed.csv` | 360 天 |
 | 2 小时 | `SOL-USDT-SWAP_2H_8640_confirmed.csv` | 720 天 |
 
-`metadata.json` 记录每个周期最新的数据覆盖范围、校验信息、更新模式和文件 SHA-256。
+`metadata.json` 记录每个周期的数据覆盖范围、校验信息、更新模式、文件 SHA-256 和统一时区定义。
 
-## 字段说明
+## 统一时间字段
+
+CSV 文件字段如下：
 
 ```text
-open_time_utc, open_time_shanghai, timestamp_ms,
+open_time_beijing, timestamp_ms,
 open, high, low, close,
 vol, volCcy, volCcyQuote, confirm
 ```
 
-- 时间戳表示 K 线的**开盘时刻**。
-- `open_time_utc` 为 UTC 时间，`open_time_shanghai` 为 Asia/Shanghai 时间。
-- `vol`、`volCcy`、`volCcyQuote` 保留 OKX K 线 API 的原始字段名称和数值。
-- 仓库仅保留 `confirm=1` 的已收盘 K 线；未收盘的当前 K 线不会写入 CSV。
+- `open_time_beijing`：K 线开盘时间，格式为 ISO 8601，固定使用北京时间，例如 `2026-09-18T23:15:00+08:00`。
+- `timestamp_ms`：同一开盘时刻的 Unix Epoch 毫秒值。这是与时区无关的绝对时间键，**不加 8 小时**，用于排序、去重、连续性校验和跨系统对齐。
+- `vol`、`volCcy`、`volCcyQuote`：保留 OKX K 线 API 的原始字段名称和数值。
+- `confirm=1`：该 K 线已经收盘；未收盘的当前 K 线不会写入 CSV。
+
+因此，所有供人阅读、展示和记录的日期时间均为东八区北京时间；机器时间键只保留标准 Unix Epoch 表示，避免同一根 K 线被错误偏移 8 小时。
 
 ## 增量更新脚本
 
@@ -40,10 +45,11 @@ python3 download_okx_sol_perp_klines.py
 
 ### 运行逻辑
 
-- **首次运行、文件缺失、CSV 损坏或数据断档超出近期窗口时**：自动回退为完整历史回填，下载各周期最新 8,640 根已收盘 K 线。
+- **首次运行、文件缺失、CSV 损坏或数据断档超出近期窗口时**：自动回退为完整历史回填，下载各周期最新 8,640 根已收盘 K 线，并以北京时间格式写入。
 - **正常后续运行**：每个周期只请求最近 300 根 K 线，和本地数据做重叠合并、去重、连续性校验，再裁剪为最新 8,640 根。
 - 为修正近期数据，最近 300 根已收盘 K 线会参与重叠覆盖，不只追加时间戳更大的行。
 - 若没有新的或被修订的已收盘 K 线，CSV 与 `metadata.json` 不会被改写。
+- 旧版同时包含 `open_time_utc` 与 `open_time_shanghai` 的 CSV，会在下一次成功运行时自动迁移为统一的北京时区字段。
 
 常用命令：
 
@@ -73,7 +79,8 @@ python3 download_okx_sol_perp_klines.py --full-refresh
 
 工作流文件：[`.github/workflows/update-okx-sol-candles.yml`](.github/workflows/update-okx-sol-candles.yml)
 
-- 计划：`7 */2 * * *`，即 **UTC 每个偶数小时的第 7 分钟**运行；
+- GitHub Actions 的 cron 语法按 UTC 解释；`7 */2 * * *` 对应北京时间每天 `00:07、02:07、04:07 … 22:07`；
+- 工作流和 Python 进程均设置 `TZ=Asia/Shanghai`；
 - 第 7 分钟为新收盘 K 线留出短暂确认缓冲；
 - 支持在 Actions 页面手动运行；手动运行时可选择 `full_refresh=true`；
 - 使用 GitHub Actions 内置 `GITHUB_TOKEN` 和 `contents: write` 权限，仅在数据实际变化时提交 CSV 与 `metadata.json`；

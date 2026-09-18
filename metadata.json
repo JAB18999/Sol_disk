@@ -1,13 +1,19 @@
 {
-  "schema_version": "2.0",
+  "schema_version": "3.0",
   "instrument": "SOL-USDT-SWAP",
   "instrument_type": "USDT-margined perpetual swap",
+  "timezone": {
+    "name": "Asia/Shanghai",
+    "offset": "+08:00",
+    "human_readable_timestamp_column": "open_time_beijing",
+    "note": "All human-readable timestamps in this repository are Beijing time. timestamp_ms is a timezone-independent Unix epoch value."
+  },
   "source_endpoints": {
     "incremental": "https://www.okx.com/api/v5/market/candles",
     "bootstrap_or_gap_recovery": "https://www.okx.com/api/v5/market/history-candles"
   },
   "completed_candles_only": true,
-  "sort_order": "ascending by candle open timestamp",
+  "sort_order": "ascending by candle open timestamp; human-readable display is Asia/Shanghai",
   "requested_rows_per_timeframe": 8640,
   "recent_overlap_limit": 300,
   "rate_limit_policy": {
@@ -15,17 +21,15 @@
     "max_retries": 6,
     "note": "Single-process pacing, Retry-After-aware retry, and no proxy/user-agent rotation."
   },
-  "last_successful_data_update_utc": "2026-09-18T15:34:48.844351Z",
+  "last_successful_data_update_beijing": "2026-09-18T23:59:23.108151+08:00",
   "timeframes": {
     "15m": {
       "bar": "15m",
       "row_count": 8640,
-      "start_timestamp_ms": "1781969400000",
-      "end_timestamp_ms": "1789744500000",
-      "start_time_utc": "2026-06-20T15:30:00Z",
-      "end_time_utc": "2026-09-18T15:15:00Z",
-      "start_time_shanghai": "2026-06-20T23:30:00+08:00",
-      "end_time_shanghai": "2026-09-18T23:15:00+08:00",
+      "start_timestamp_ms": "1781970300000",
+      "end_timestamp_ms": "1789745400000",
+      "start_time_beijing": "2026-06-20T23:45:00+08:00",
+      "end_time_beijing": "2026-09-18T23:30:00+08:00",
       "expected_step_ms": 900000,
       "unique_timestamp_count": 8640,
       "interval_anomaly_count": 0,
@@ -33,22 +37,20 @@
       "csv_filename": "SOL-USDT-SWAP_15m_8640_confirmed.csv",
       "update": {
         "mode": "incremental",
-        "reason": "incremental_recent_overlap",
+        "reason": "legacy_timezone_schema_migration_plus_recent_overlap",
         "new_candles": 1,
         "revised_candles": 0,
         "api_requests": 1
       },
-      "csv_sha256": "6dcd34c177d675f15bcdfd13c02855ed80271daf9dc0730be6ff048d14e4aa18"
+      "csv_sha256": "935eca613bc8640d9a8d253872d753410698d4f510088e51c173250d68625af2"
     },
     "30m": {
       "bar": "30m",
       "row_count": 8640,
       "start_timestamp_ms": "1774193400000",
       "end_timestamp_ms": "1789743600000",
-      "start_time_utc": "2026-03-22T15:30:00Z",
-      "end_time_utc": "2026-09-18T15:00:00Z",
-      "start_time_shanghai": "2026-03-22T23:30:00+08:00",
-      "end_time_shanghai": "2026-09-18T23:00:00+08:00",
+      "start_time_beijing": "2026-03-22T23:30:00+08:00",
+      "end_time_beijing": "2026-09-18T23:00:00+08:00",
       "expected_step_ms": 1800000,
       "unique_timestamp_count": 8640,
       "interval_anomaly_count": 0,
@@ -56,22 +58,20 @@
       "csv_filename": "SOL-USDT-SWAP_30m_8640_confirmed.csv",
       "update": {
         "mode": "incremental",
-        "reason": "incremental_recent_overlap",
-        "new_candles": 1,
+        "reason": "legacy_timezone_schema_migration_plus_recent_overlap",
+        "new_candles": 0,
         "revised_candles": 0,
         "api_requests": 1
       },
-      "csv_sha256": "c3f30749cc8776e3a04b2e3d651a1b95fa4f82959b01d74fd42d12e5ca3dd821"
+      "csv_sha256": "f230423ab8719c781d4345091d826cd1d3995333d1a7bf77bccc5ae86b8a09fd"
     },
     "1H": {
       "bar": "1H",
       "row_count": 8640,
       "start_timestamp_ms": "1758639600000",
       "end_timestamp_ms": "1789740000000",
-      "start_time_utc": "2025-09-23T15:00:00Z",
-      "end_time_utc": "2026-09-18T14:00:00Z",
-      "start_time_shanghai": "2025-09-23T23:00:00+08:00",
-      "end_time_shanghai": "2026-09-18T22:00:00+08:00",
+      "start_time_beijing": "2025-09-23T23:00:00+08:00",
+      "end_time_beijing": "2026-09-18T22:00:00+08:00",
       "expected_step_ms": 3600000,
       "unique_timestamp_count": 8640,
       "interval_anomaly_count": 0,
@@ -79,22 +79,20 @@
       "csv_filename": "SOL-USDT-SWAP_1H_8640_confirmed.csv",
       "update": {
         "mode": "incremental",
-        "reason": "incremental_recent_overlap",
+        "reason": "legacy_timezone_schema_migration_plus_recent_overlap",
         "new_candles": 0,
         "revised_candles": 0,
         "api_requests": 1
       },
-      "csv_sha256": "a14dba0a9500bc62a24d5620ede8e4096de447c92398f00cf6059f16f1661d6b"
+      "csv_sha256": "cb35f043421f6eb467355a58392b1a18a26572c5dbf3403581e19f6e7d42b9a9"
     },
     "2H": {
       "bar": "2H",
       "row_count": 8640,
       "start_timestamp_ms": "1727532000000",
       "end_timestamp_ms": "1789732800000",
-      "start_time_utc": "2024-09-28T14:00:00Z",
-      "end_time_utc": "2026-09-18T12:00:00Z",
-      "start_time_shanghai": "2024-09-28T22:00:00+08:00",
-      "end_time_shanghai": "2026-09-18T20:00:00+08:00",
+      "start_time_beijing": "2024-09-28T22:00:00+08:00",
+      "end_time_beijing": "2026-09-18T20:00:00+08:00",
       "expected_step_ms": 7200000,
       "unique_timestamp_count": 8640,
       "interval_anomaly_count": 0,
@@ -102,12 +100,12 @@
       "csv_filename": "SOL-USDT-SWAP_2H_8640_confirmed.csv",
       "update": {
         "mode": "incremental",
-        "reason": "incremental_recent_overlap",
+        "reason": "legacy_timezone_schema_migration_plus_recent_overlap",
         "new_candles": 0,
         "revised_candles": 0,
         "api_requests": 1
       },
-      "csv_sha256": "25a0f282170afcc6eb6af4fc5f543c59eac4541cae8e483856f6f960e1bfeba3"
+      "csv_sha256": "3c38ff5733e8d2a352095541325b46774ff40a25a8fe87f6aff63170a2e94d84"
     }
   },
   "instrument_snapshot": [

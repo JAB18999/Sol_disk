@@ -2,8 +2,9 @@ name: Update OKX SOL perpetual candles
 
 on:
   schedule:
-    # GitHub Actions cron is UTC. Run at minute 7 of every even UTC hour,
-    # allowing the just-closed 2H candle a small confirmation buffer.
+    # GitHub evaluates cron in UTC. UTC 00:07, 02:07, ... maps exactly to
+    # Beijing time 08:07, 10:07, ...; across midnight this is every two hours
+    # at :07 Beijing time as well.
     - cron: "7 */2 * * *"
   workflow_dispatch:
     inputs:
@@ -12,6 +13,10 @@ on:
         required: false
         default: false
         type: boolean
+
+# Use Beijing time consistently in shell output and in Git's local commit offset.
+env:
+  TZ: Asia/Shanghai
 
 # Required for the workflow's built-in GITHUB_TOKEN to commit updated CSV data.
 permissions:
@@ -24,7 +29,7 @@ concurrency:
 
 jobs:
   update-candles:
-    name: Incrementally update CSV data
+    name: Incrementally update Beijing-time CSV data
     runs-on: ubuntu-latest
     timeout-minutes: 15
 
@@ -44,6 +49,7 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
+          echo "Workflow time (Beijing): $(date '+%Y-%m-%d %H:%M:%S %z')"
           if [[ "${{ github.event.inputs.full_refresh }}" == "true" ]]; then
             python3 download_okx_sol_perp_klines.py --full-refresh
           else
@@ -68,5 +74,5 @@ jobs:
 
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git commit -m "data: incrementally update OKX SOL candles"
+          git commit -m "data: incrementally update OKX SOL candles (Beijing time)"
           git push
