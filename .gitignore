@@ -1,6 +1,8 @@
-# Generated convenience exports; raw CSV is intentionally versioned.
+# Raw CSV data is intentionally versioned.
 *.xlsx
 *.zip
 __pycache__/
 *.py[cod]
 .DS_Store
+.okx_candle_update.lock
+.*.tmp

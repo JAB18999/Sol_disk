@@ -1,0 +1,72 @@
+name: Update OKX SOL perpetual candles
+
+on:
+  schedule:
+    # GitHub Actions cron is UTC. Run at minute 7 of every even UTC hour,
+    # allowing the just-closed 2H candle a small confirmation buffer.
+    - cron: "7 */2 * * *"
+  workflow_dispatch:
+    inputs:
+      full_refresh:
+        description: "Force a full 8,640-bar historical refresh for every timeframe"
+        required: false
+        default: false
+        type: boolean
+
+# Required for the workflow's built-in GITHUB_TOKEN to commit updated CSV data.
+permissions:
+  contents: write
+
+# A scheduled run must not overlap a slow/manual run; queue rather than cancel it.
+concurrency:
+  group: okx-sol-candle-update-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  update-candles:
+    name: Incrementally update CSV data
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          persist-credentials: true
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Fetch and validate newly closed candles
+        shell: bash
+        run: |
+          set -euo pipefail
+          if [[ "${{ github.event.inputs.full_refresh }}" == "true" ]]; then
+            python3 download_okx_sol_perp_klines.py --full-refresh
+          else
+            python3 download_okx_sol_perp_klines.py
+          fi
+
+      - name: Commit and push data changes
+        shell: bash
+        run: |
+          set -euo pipefail
+          git add \
+            SOL-USDT-SWAP_15m_8640_confirmed.csv \
+            SOL-USDT-SWAP_30m_8640_confirmed.csv \
+            SOL-USDT-SWAP_1H_8640_confirmed.csv \
+            SOL-USDT-SWAP_2H_8640_confirmed.csv \
+            metadata.json
+
+          if git diff --cached --quiet; then
+            echo "No new completed candles or metadata changes; nothing to commit."
+            exit 0
+          fi
+
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git commit -m "data: incrementally update OKX SOL candles"
+          git push
