@@ -21,15 +21,15 @@
     "max_retries": 6,
     "note": "Single-process pacing, Retry-After-aware retry, and no proxy/user-agent rotation."
   },
-  "last_successful_data_update_beijing": "2026-09-20T19:09:12.961077+08:00",
+  "last_successful_data_update_beijing": "2026-09-20T23:56:00.643957+08:00",
   "timeframes": {
     "15m": {
       "bar": "15m",
       "row_count": 8640,
-      "start_timestamp_ms": "1782126000000",
-      "end_timestamp_ms": "1789901100000",
-      "start_time_beijing": "2026-06-22T19:00:00+08:00",
-      "end_time_beijing": "2026-09-20T18:45:00+08:00",
+      "start_timestamp_ms": "1782143100000",
+      "end_timestamp_ms": "1789918200000",
+      "start_time_beijing": "2026-06-22T23:45:00+08:00",
+      "end_time_beijing": "2026-09-20T23:30:00+08:00",
       "expected_step_ms": 900000,
       "unique_timestamp_count": 8640,
       "interval_anomaly_count": 0,
@@ -38,19 +38,19 @@
       "update": {
         "mode": "incremental",
         "reason": "incremental_recent_overlap",
-        "new_candles": 26,
+        "new_candles": 19,
         "revised_candles": 0,
         "api_requests": 1
       },
-      "csv_sha256": "1168678adbcd07161a23950429633cf639fd8af2fdbad7b500524ff6f57fcfae"
+      "csv_sha256": "b4c455e7d22b1dd01fcf9e8f2995a9bafb1350fe17cccf60ba9738129acda17d"
     },
     "30m": {
       "bar": "30m",
       "row_count": 8640,
-      "start_timestamp_ms": "1774350000000",
-      "end_timestamp_ms": "1789900200000",
-      "start_time_beijing": "2026-03-24T19:00:00+08:00",
-      "end_time_beijing": "2026-09-20T18:30:00+08:00",
+      "start_timestamp_ms": "1774366200000",
+      "end_timestamp_ms": "1789916400000",
+      "start_time_beijing": "2026-03-24T23:30:00+08:00",
+      "end_time_beijing": "2026-09-20T23:00:00+08:00",
       "expected_step_ms": 1800000,
       "unique_timestamp_count": 8640,
       "interval_anomaly_count": 0,
@@ -59,19 +59,19 @@
       "update": {
         "mode": "incremental",
         "reason": "incremental_recent_overlap",
-        "new_candles": 13,
+        "new_candles": 9,
         "revised_candles": 0,
         "api_requests": 1
       },
-      "csv_sha256": "b3c1655ff02e3afecc8305cc880e77faa4d034487abbc9b278ee6dae25d6d49a"
+      "csv_sha256": "844841f39b062f21beaae3daa75762394f93279a90aaa138cba57c9b7824d3aa"
     },
     "1H": {
       "bar": "1H",
       "row_count": 8640,
-      "start_timestamp_ms": "1758798000000",
-      "end_timestamp_ms": "1789898400000",
-      "start_time_beijing": "2025-09-25T19:00:00+08:00",
-      "end_time_beijing": "2026-09-20T18:00:00+08:00",
+      "start_timestamp_ms": "1758812400000",
+      "end_timestamp_ms": "1789912800000",
+      "start_time_beijing": "2025-09-25T23:00:00+08:00",
+      "end_time_beijing": "2026-09-20T22:00:00+08:00",
       "expected_step_ms": 3600000,
       "unique_timestamp_count": 8640,
       "interval_anomaly_count": 0,
@@ -80,19 +80,19 @@
       "update": {
         "mode": "incremental",
         "reason": "incremental_recent_overlap",
-        "new_candles": 7,
+        "new_candles": 4,
         "revised_candles": 0,
         "api_requests": 1
       },
-      "csv_sha256": "856370c315843c46d523eac3e43e47c7a37b156b25783a92db453a1819d15c37"
+      "csv_sha256": "d0b1359dfbb461204680cb81af7848ec889d6e906fef511fcd0bb8af7aac6512"
     },
     "2H": {
       "bar": "2H",
       "row_count": 8640,
-      "start_timestamp_ms": "1727690400000",
-      "end_timestamp_ms": "1789891200000",
-      "start_time_beijing": "2024-09-30T18:00:00+08:00",
-      "end_time_beijing": "2026-09-20T16:00:00+08:00",
+      "start_timestamp_ms": "1727704800000",
+      "end_timestamp_ms": "1789905600000",
+      "start_time_beijing": "2024-09-30T22:00:00+08:00",
+      "end_time_beijing": "2026-09-20T20:00:00+08:00",
       "expected_step_ms": 7200000,
       "unique_timestamp_count": 8640,
       "interval_anomaly_count": 0,
@@ -101,11 +101,11 @@
       "update": {
         "mode": "incremental",
         "reason": "incremental_recent_overlap",
-        "new_candles": 3,
+        "new_candles": 2,
         "revised_candles": 0,
         "api_requests": 1
       },
-      "csv_sha256": "6c1d60348ee76c7ad38f3a482aaf6c009ea2025faf6a73e382ca1ebb340dad2d"
+      "csv_sha256": "b051800263d505f838e4e5c6bf7a79b5aff6993b4c4d4ec4d01dbe9d77310205"
     }
   },
   "instrument_snapshot": [
