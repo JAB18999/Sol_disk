@@ -6,6 +6,14 @@ on:
     # Beijing time 08:07, 10:07, ...; across midnight this is every two hours
     # at :07 Beijing time as well.
     - cron: "7 */2 * * *"
+  # Run once when the retention/update implementation changes. Data-only bot
+  # commits do not match these paths, so they cannot create a push loop.
+  push:
+    branches:
+      - arena/01a0ba8f-sol-disk
+    paths:
+      - download_okx_sol_perp_klines.py
+      - .github/workflows/update-okx-sol-candles.yml
   workflow_dispatch:
     inputs:
       full_refresh:
