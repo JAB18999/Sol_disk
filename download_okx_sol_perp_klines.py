@@ -53,6 +53,7 @@ LOCK_FILE = ROOT / ".okx_candle_update.lock"
 LOCK_STALE_SECONDS = 30 * 60
 
 BARS = {
+    "5m": 5 * 60 * 1000,
     "15m": 15 * 60 * 1000,
     "30m": 30 * 60 * 1000,
     "1H": 60 * 60 * 1000,

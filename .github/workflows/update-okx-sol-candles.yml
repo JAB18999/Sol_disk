@@ -69,6 +69,7 @@ jobs:
         run: |
           set -euo pipefail
           git add \
+            SOL-USDT-SWAP_5m_180d_confirmed.csv \
             SOL-USDT-SWAP_15m_180d_confirmed.csv \
             SOL-USDT-SWAP_30m_180d_confirmed.csv \
             SOL-USDT-SWAP_1H_180d_confirmed.csv \

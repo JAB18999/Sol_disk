@@ -9,8 +9,9 @@
 
 每个 CSV 始终保留最近 **180 天的已收盘 K 线**，按 K 线开盘时间升序排列。由于周期不同，各文件行数不同：
 
-| 周期 | 文件 | 近似覆盖长度 |
+| 周期 | 文件 | K 线数量 |
 |---|---|---:|
+| 5 分钟 | `SOL-USDT-SWAP_5m_180d_confirmed.csv` | 51,840 |
 | 15 分钟 | `SOL-USDT-SWAP_15m_180d_confirmed.csv` | 17,280 |
 | 30 分钟 | `SOL-USDT-SWAP_30m_180d_confirmed.csv` | 8,640 |
 | 1 小时 | `SOL-USDT-SWAP_1H_180d_confirmed.csv` | 4,320 |
