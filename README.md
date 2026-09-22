@@ -7,14 +7,14 @@
 
 ## 数据文件
 
-每个 CSV 始终保留最新的 **8,640 根已收盘 K 线**，按 K 线开盘时间升序排列：
+每个 CSV 始终保留最近 **180 天的已收盘 K 线**，按 K 线开盘时间升序排列。由于周期不同，各文件行数不同：
 
 | 周期 | 文件 | 近似覆盖长度 |
 |---|---|---:|
-| 15 分钟 | `SOL-USDT-SWAP_15m_8640_confirmed.csv` | 90 天 |
-| 30 分钟 | `SOL-USDT-SWAP_30m_8640_confirmed.csv` | 180 天 |
-| 1 小时 | `SOL-USDT-SWAP_1H_8640_confirmed.csv` | 360 天 |
-| 2 小时 | `SOL-USDT-SWAP_2H_8640_confirmed.csv` | 720 天 |
+| 15 分钟 | `SOL-USDT-SWAP_15m_180d_confirmed.csv` | 17,280 |
+| 30 分钟 | `SOL-USDT-SWAP_30m_180d_confirmed.csv` | 8,640 |
+| 1 小时 | `SOL-USDT-SWAP_1H_180d_confirmed.csv` | 4,320 |
+| 2 小时 | `SOL-USDT-SWAP_2H_180d_confirmed.csv` | 2,160 |
 
 `metadata.json` 记录每个周期的数据覆盖范围、校验信息、更新模式、文件 SHA-256 和统一时区定义。
 
@@ -45,8 +45,8 @@ python3 download_okx_sol_perp_klines.py
 
 ### 运行逻辑
 
-- **首次运行、文件缺失、CSV 损坏或数据断档超出近期窗口时**：自动回退为完整历史回填，下载各周期最新 8,640 根已收盘 K 线，并以北京时间格式写入。
-- **正常后续运行**：每个周期只请求最近 300 根 K 线，和本地数据做重叠合并、去重、连续性校验，再裁剪为最新 8,640 根。
+- **首次运行、文件缺失、CSV 损坏或数据断档超出近期窗口时**：自动回退为完整历史回填，下载各周期最近 180 天的已收盘 K 线，并以北京时间格式写入。
+- **正常后续运行**：每个周期只请求最近 300 根 K 线，和本地数据做重叠合并、去重、连续性校验，再裁剪为最近 180 天对应的 K 线数量。
 - 为修正近期数据，最近 300 根已收盘 K 线会参与重叠覆盖，不只追加时间戳更大的行。
 - 若没有新的或被修订的已收盘 K 线，CSV 与 `metadata.json` 不会被改写。
 - 旧版同时包含 `open_time_utc` 与 `open_time_shanghai` 的 CSV，会在下一次成功运行时自动迁移为统一的北京时区字段。
@@ -57,7 +57,7 @@ python3 download_okx_sol_perp_klines.py
 # 仅检查 API、合并逻辑和完整性；不写入文件
 python3 download_okx_sol_perp_klines.py --dry-run
 
-# 无视本地数据，强制重新回填每个周期的 8,640 根 K 线
+# 无视本地数据，强制重新回填每个周期最近 180 天的 K 线
 python3 download_okx_sol_perp_klines.py --full-refresh
 ```
 

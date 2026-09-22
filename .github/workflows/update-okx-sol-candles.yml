@@ -9,7 +9,7 @@ on:
   workflow_dispatch:
     inputs:
       full_refresh:
-        description: "Force a full 8,640-bar historical refresh for every timeframe"
+        description: "Force a full 180-day historical refresh for every timeframe"
         required: false
         default: false
         type: boolean
@@ -61,10 +61,10 @@ jobs:
         run: |
           set -euo pipefail
           git add \
-            SOL-USDT-SWAP_15m_8640_confirmed.csv \
-            SOL-USDT-SWAP_30m_8640_confirmed.csv \
-            SOL-USDT-SWAP_1H_8640_confirmed.csv \
-            SOL-USDT-SWAP_2H_8640_confirmed.csv \
+            SOL-USDT-SWAP_15m_180d_confirmed.csv \
+            SOL-USDT-SWAP_30m_180d_confirmed.csv \
+            SOL-USDT-SWAP_1H_180d_confirmed.csv \
+            SOL-USDT-SWAP_2H_180d_confirmed.csv \
             metadata.json
 
           if git diff --cached --quiet; then
