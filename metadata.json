@@ -21,15 +21,15 @@
     "max_retries": 6,
     "note": "Single-process pacing, Retry-After-aware retry, and no proxy/user-agent rotation."
   },
-  "last_successful_data_update_beijing": "2026-09-26T12:44:28.000613+08:00",
+  "last_successful_data_update_beijing": "2026-09-26T19:14:15.136323+08:00",
   "timeframes": {
     "15m": {
       "bar": "15m",
       "row_count": 8640,
-      "start_timestamp_ms": "1782621000000",
-      "end_timestamp_ms": "1790396100000",
-      "start_time_beijing": "2026-06-28T12:30:00+08:00",
-      "end_time_beijing": "2026-09-26T12:15:00+08:00",
+      "start_timestamp_ms": "1782644400000",
+      "end_timestamp_ms": "1790419500000",
+      "start_time_beijing": "2026-06-28T19:00:00+08:00",
+      "end_time_beijing": "2026-09-26T18:45:00+08:00",
       "expected_step_ms": 900000,
       "unique_timestamp_count": 8640,
       "interval_anomaly_count": 0,
@@ -38,19 +38,19 @@
       "update": {
         "mode": "incremental",
         "reason": "incremental_recent_overlap",
-        "new_candles": 22,
+        "new_candles": 26,
         "revised_candles": 0,
         "api_requests": 1
       },
-      "csv_sha256": "6996c8d8390a6c1ead437c8b4d0db814b95d2af6d96f27624ddd0c2c72e27279"
+      "csv_sha256": "dcf3c0c2b6b7765facfb973c3ef49635afe1efee7efa77ef168686a15e59abba"
     },
     "30m": {
       "bar": "30m",
       "row_count": 8640,
-      "start_timestamp_ms": "1774845000000",
-      "end_timestamp_ms": "1790395200000",
-      "start_time_beijing": "2026-03-30T12:30:00+08:00",
-      "end_time_beijing": "2026-09-26T12:00:00+08:00",
+      "start_timestamp_ms": "1774868400000",
+      "end_timestamp_ms": "1790418600000",
+      "start_time_beijing": "2026-03-30T19:00:00+08:00",
+      "end_time_beijing": "2026-09-26T18:30:00+08:00",
       "expected_step_ms": 1800000,
       "unique_timestamp_count": 8640,
       "interval_anomaly_count": 0,
@@ -59,19 +59,19 @@
       "update": {
         "mode": "incremental",
         "reason": "incremental_recent_overlap",
-        "new_candles": 11,
+        "new_candles": 13,
         "revised_candles": 0,
         "api_requests": 1
       },
-      "csv_sha256": "ae3f3ef5dccf15632b7ecc7bf42572bb55c35f12b6fef9348144e5e772dfaabb"
+      "csv_sha256": "cf6ff804f0ca005051b3aaf70b0c3d917ef85a679b44ba027ac1bbb6b27e5ac0"
     },
     "1H": {
       "bar": "1H",
       "row_count": 8640,
-      "start_timestamp_ms": "1759291200000",
-      "end_timestamp_ms": "1790391600000",
-      "start_time_beijing": "2025-10-01T12:00:00+08:00",
-      "end_time_beijing": "2026-09-26T11:00:00+08:00",
+      "start_timestamp_ms": "1759316400000",
+      "end_timestamp_ms": "1790416800000",
+      "start_time_beijing": "2025-10-01T19:00:00+08:00",
+      "end_time_beijing": "2026-09-26T18:00:00+08:00",
       "expected_step_ms": 3600000,
       "unique_timestamp_count": 8640,
       "interval_anomaly_count": 0,
@@ -80,19 +80,19 @@
       "update": {
         "mode": "incremental",
         "reason": "incremental_recent_overlap",
-        "new_candles": 5,
+        "new_candles": 7,
         "revised_candles": 0,
         "api_requests": 1
       },
-      "csv_sha256": "c19c229c7d68890e09a5af2579a350f8eeecb3e6a8ebc490e9825af41afee9d6"
+      "csv_sha256": "13d183f36bf4e50a0d28044bbb35b3ee34ceb03ff1a135ce1cffc6aad55f354f"
     },
     "2H": {
       "bar": "2H",
       "row_count": 8640,
-      "start_timestamp_ms": "1728187200000",
-      "end_timestamp_ms": "1790388000000",
-      "start_time_beijing": "2024-10-06T12:00:00+08:00",
-      "end_time_beijing": "2026-09-26T10:00:00+08:00",
+      "start_timestamp_ms": "1728208800000",
+      "end_timestamp_ms": "1790409600000",
+      "start_time_beijing": "2024-10-06T18:00:00+08:00",
+      "end_time_beijing": "2026-09-26T16:00:00+08:00",
       "expected_step_ms": 7200000,
       "unique_timestamp_count": 8640,
       "interval_anomaly_count": 0,
@@ -105,7 +105,7 @@
         "revised_candles": 0,
         "api_requests": 1
       },
-      "csv_sha256": "ce1b5e58d875ad11664ffadbe2f6bfc1cc6e534d2eae5fb7b572cc807455103d"
+      "csv_sha256": "22ee666a1c1de2a2068ed444ca93f64663525e155696ae9bb81de57c12be8f89"
     }
   },
   "instrument_snapshot": [
