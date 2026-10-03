@@ -21,15 +21,15 @@
     "max_retries": 6,
     "note": "Single-process pacing, Retry-After-aware retry, and no proxy/user-agent rotation."
   },
-  "last_successful_data_update_beijing": "2026-10-03T13:05:12.381542+08:00",
+  "last_successful_data_update_beijing": "2026-10-03T19:31:34.831781+08:00",
   "timeframes": {
     "15m": {
       "bar": "15m",
       "row_count": 8640,
-      "start_timestamp_ms": "1783227600000",
-      "end_timestamp_ms": "1791002700000",
-      "start_time_beijing": "2026-07-05T13:00:00+08:00",
-      "end_time_beijing": "2026-10-03T12:45:00+08:00",
+      "start_timestamp_ms": "1783251000000",
+      "end_timestamp_ms": "1791026100000",
+      "start_time_beijing": "2026-07-05T19:30:00+08:00",
+      "end_time_beijing": "2026-10-03T19:15:00+08:00",
       "expected_step_ms": 900000,
       "unique_timestamp_count": 8640,
       "interval_anomaly_count": 0,
@@ -38,19 +38,19 @@
       "update": {
         "mode": "incremental",
         "reason": "incremental_recent_overlap",
-        "new_candles": 22,
+        "new_candles": 26,
         "revised_candles": 0,
         "api_requests": 1
       },
-      "csv_sha256": "97b15bfddc0c891393f11b1f074651e89a489aed7c844e412a020700a481c4ad"
+      "csv_sha256": "ffb48d704bb8de48eda507762c21ff388776a7a1a741fc7b2097a525453d6462"
     },
     "30m": {
       "bar": "30m",
       "row_count": 8640,
-      "start_timestamp_ms": "1775451600000",
-      "end_timestamp_ms": "1791001800000",
-      "start_time_beijing": "2026-04-06T13:00:00+08:00",
-      "end_time_beijing": "2026-10-03T12:30:00+08:00",
+      "start_timestamp_ms": "1775475000000",
+      "end_timestamp_ms": "1791025200000",
+      "start_time_beijing": "2026-04-06T19:30:00+08:00",
+      "end_time_beijing": "2026-10-03T19:00:00+08:00",
       "expected_step_ms": 1800000,
       "unique_timestamp_count": 8640,
       "interval_anomaly_count": 0,
@@ -59,19 +59,19 @@
       "update": {
         "mode": "incremental",
         "reason": "incremental_recent_overlap",
-        "new_candles": 11,
+        "new_candles": 13,
         "revised_candles": 0,
         "api_requests": 1
       },
-      "csv_sha256": "777fd7e0372d7f3e3decd9f560c09c22da49851776569296c7b89d65bf974106"
+      "csv_sha256": "5f6abaead11c4f221c6f19dad2e5c5aedd5fa60497ce34dc05f48a233e22c4e7"
     },
     "1H": {
       "bar": "1H",
       "row_count": 8640,
-      "start_timestamp_ms": "1759899600000",
-      "end_timestamp_ms": "1791000000000",
-      "start_time_beijing": "2025-10-08T13:00:00+08:00",
-      "end_time_beijing": "2026-10-03T12:00:00+08:00",
+      "start_timestamp_ms": "1759921200000",
+      "end_timestamp_ms": "1791021600000",
+      "start_time_beijing": "2025-10-08T19:00:00+08:00",
+      "end_time_beijing": "2026-10-03T18:00:00+08:00",
       "expected_step_ms": 3600000,
       "unique_timestamp_count": 8640,
       "interval_anomaly_count": 0,
@@ -84,15 +84,15 @@
         "revised_candles": 0,
         "api_requests": 1
       },
-      "csv_sha256": "4b97d78f9c03579bd6fb683b01ea2dcbffc294662d6d5e89d30b30bfaf1d4fff"
+      "csv_sha256": "7c0722b34c25c130f2b7a585d70a6bce970cd9e61372b072f27429b0928911f2"
     },
     "2H": {
       "bar": "2H",
       "row_count": 8640,
-      "start_timestamp_ms": "1728792000000",
-      "end_timestamp_ms": "1790992800000",
-      "start_time_beijing": "2024-10-13T12:00:00+08:00",
-      "end_time_beijing": "2026-10-03T10:00:00+08:00",
+      "start_timestamp_ms": "1728813600000",
+      "end_timestamp_ms": "1791014400000",
+      "start_time_beijing": "2024-10-13T18:00:00+08:00",
+      "end_time_beijing": "2026-10-03T16:00:00+08:00",
       "expected_step_ms": 7200000,
       "unique_timestamp_count": 8640,
       "interval_anomaly_count": 0,
@@ -105,7 +105,7 @@
         "revised_candles": 0,
         "api_requests": 1
       },
-      "csv_sha256": "b2ae8f70ad0b7031c9abe253739fbebd0c18a596779b326630a77dd30aae40b4"
+      "csv_sha256": "fd0b43fa1230a793477493693692e4e82015363d358483f506447fe38c583c75"
     }
   },
   "instrument_snapshot": [
