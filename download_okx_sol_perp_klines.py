@@ -3,16 +3,16 @@
 
 Normal mode reads the repository's existing CSV files, retrieves only a recent
 300-bar overlap from OKX for each timeframe, merges newly closed candles,
-validates continuity, and retains the latest 8,640 completed candles.
+validates continuity, and retains the latest 360 days of completed candles.
 
 All human-readable timestamps written by this script use Asia/Shanghai
 (Beijing time, UTC+08:00). `timestamp_ms` remains a Unix-epoch millisecond
 identifier: it is timezone-independent and must not be shifted by eight hours.
 
 If a CSV is missing, invalid, or too far behind the recent API window, the
-script safely falls back to a full 8,640-bar historical backfill. It uses a
+script safely falls back to a full historical backfill. It uses a
 single-process lock, conservative request pacing, bounded retries, 429-aware
-backoff, and atomic output replacement.
+backoff, pagination anti-ban throttling, and atomic output replacement.
 
 Examples:
     python3 download_okx_sol_perp_klines.py
@@ -41,7 +41,7 @@ from zoneinfo import ZoneInfo
 
 ROOT = Path(__file__).resolve().parent
 INSTRUMENT = "SOL-USDT-SWAP"
-COUNT = 8640
+TARGET_DAYS = 360
 RECENT_LIMIT = 300
 BEIJING_TIMEZONE_NAME = "Asia/Shanghai"
 BEIJING_TIMEZONE = ZoneInfo(BEIJING_TIMEZONE_NAME)
@@ -52,12 +52,27 @@ MAX_RETRIES = 6
 LOCK_FILE = ROOT / ".okx_candle_update.lock"
 LOCK_STALE_SECONDS = 30 * 60
 
+# Anti-ban / anti-rate-limit for paginated history-candle downloads.
+PAGINATION_SLEEP_MIN_SECONDS = 1.0
+PAGINATION_SLEEP_MAX_SECONDS = 3.0
+PAGINATION_BURST_GUARD_SECONDS = 0.5
+
 BARS = {
+    "5m": 5 * 60 * 1000,
     "15m": 15 * 60 * 1000,
     "30m": 30 * 60 * 1000,
     "1H": 60 * 60 * 1000,
     "2H": 2 * 60 * 60 * 1000,
 }
+
+
+def count_for_bar(bar: str) -> int:
+    """Calculate the number of completed candles needed for a 360-day window."""
+    step_ms = BARS[bar]
+    candles_per_day = (24 * 60 * 60 * 1000) // step_ms
+    return TARGET_DAYS * candles_per_day
+
+
 LATEST_API = "https://www.okx.com/api/v5/market/candles"
 HISTORY_API = "https://www.okx.com/api/v5/market/history-candles"
 HEADERS = {
@@ -195,6 +210,11 @@ class OKXPublicClient:
         for attempt in range(MAX_RETRIES):
             self.pacer.wait_turn()
             self.request_count += 1
+
+            # Extra anti-ban jitter to avoid synchronized request bursts.
+            if self.request_count > 1:
+                time.sleep(random.uniform(0.15, 0.5))
+
             request = urllib.request.Request(url, headers=HEADERS)
             retry_after: float | None = None
             try:
@@ -229,7 +249,6 @@ class OKXPublicClient:
             if attempt == MAX_RETRIES - 1:
                 break
 
-            # Full-jitter exponential backoff avoids synchronised retry bursts.
             exponential_cap = min(60.0, 1.0 * (2 ** attempt))
             delay = random.uniform(0.5, exponential_cap)
             if retry_after is not None:
@@ -276,20 +295,26 @@ def fetch_recent_confirmed(client: OKXPublicClient, bar: str) -> list[dict[str, 
 
 
 def fetch_full_history(client: OKXPublicClient, bar: str) -> list[dict[str, str]]:
-    """Backfill exactly COUNT latest confirmed candles using historical pagination."""
+    """Backfill exactly the latest 360-day confirmed candles using historical pagination."""
+    target_count = count_for_bar(bar)
     newest_first: list[list[str]] = []
     seen: set[int] = set()
     cursor: int | None = None
 
-    while len(newest_first) < COUNT:
+    while len(newest_first) < target_count:
         params = {"instId": INSTRUMENT, "bar": bar, "limit": str(RECENT_LIMIT)}
         if cursor is not None:
             # OKX history-candles `after` returns candles strictly older than cursor.
             params["after"] = str(cursor)
+
         response = client.get_json(HISTORY_API, params)
         page = response.get("data", [])
         if not page:
             raise DataValidationError(f"OKX returned no more historical {bar} candles at cursor={cursor}")
+
+        # Anti-ban guard for paginated history downloads: stagger each page fetch.
+        if newest_first:
+            time.sleep(random.uniform(PAGINATION_SLEEP_MIN_SECONDS, PAGINATION_SLEEP_MAX_SECONDS))
 
         timestamps = [int(candle[0]) for candle in page if candle]
         if not timestamps:
@@ -301,13 +326,18 @@ def fetch_full_history(client: OKXPublicClient, bar: str) -> list[dict[str, str]
             if len(candle) >= 9 and candle[8] == "1" and int(candle[0]) not in seen:
                 newest_first.append(candle)
                 seen.add(int(candle[0]))
+
+        # Add a short guard after each page to avoid triggering 429 rate limits.
+        if len(page) >= int(params["limit"]):
+            time.sleep(random.uniform(PAGINATION_BURST_GUARD_SECONDS, 1.0))
+
         cursor = min(timestamps)
 
-    rows = [api_candle_to_row(candle) for candle in newest_first[:COUNT]]
+    rows = [api_candle_to_row(candle) for candle in newest_first[:target_count]]
     return sorted(rows, key=lambda row: int(row["timestamp_ms"]))
 
 
-def read_existing_csv(path: Path, expected_step_ms: int) -> tuple[list[dict[str, str]], bool]:
+def read_existing_csv(path: Path, expected_step_ms: int, expected_count: int) -> tuple[list[dict[str, str]], bool]:
     """Read the current schema or migrate a legacy UTC/Shanghai display schema in memory."""
     if not path.exists():
         raise DataValidationError(f"Missing file: {path.name}")
@@ -343,7 +373,7 @@ def read_existing_csv(path: Path, expected_step_ms: int) -> tuple[list[dict[str,
     except (OSError, KeyError, TypeError, ValueError) as exc:
         raise DataValidationError(f"Unable to read a valid CSV schema from {path.name}") from exc
 
-    validate_rows(rows, expected_step_ms, COUNT)
+    validate_rows(rows, expected_step_ms, expected_count)
     return rows, migrated_legacy_schema
 
 
@@ -388,6 +418,7 @@ def merge_recent(
     existing: list[dict[str, str]],
     recent: list[dict[str, str]],
     expected_step_ms: int,
+    expected_count: int,
 ) -> tuple[list[dict[str, str]], int, int, str]:
     """Merge the recent overlap and detect whether a full fallback is required."""
     existing_last = int(existing[-1]["timestamp_ms"])
@@ -416,8 +447,8 @@ def merge_recent(
         existing_by_ts[timestamp] = row
 
     merged = [existing_by_ts[timestamp] for timestamp in sorted(existing_by_ts)]
-    latest_window = merged[-COUNT:]
-    validate_rows(latest_window, expected_step_ms, COUNT)
+    latest_window = merged[-expected_count:]
+    validate_rows(latest_window, expected_step_ms, expected_count)
     return latest_window, new_count, revised_count, "incremental_recent_overlap"
 
 
@@ -467,16 +498,17 @@ class UpdateResult:
 
 
 def update_timeframe(client: OKXPublicClient, bar: str, expected_step_ms: int, force_full: bool) -> UpdateResult:
-    path = ROOT / f"{INSTRUMENT}_{bar}_{COUNT}_confirmed.csv"
+    target_count = count_for_bar(bar)
+    path = ROOT / f"{INSTRUMENT}_{bar}_{target_count}_confirmed.csv"
     before_requests = client.request_count
     existing: list[dict[str, str]] | None = None
     fallback_reason: str | None = None
 
     if not force_full:
         try:
-            existing, legacy_schema = read_existing_csv(path, expected_step_ms)
+            existing, legacy_schema = read_existing_csv(path, expected_step_ms, target_count)
             recent = fetch_recent_confirmed(client, bar)
-            candidate, new_count, revised_count, reason = merge_recent(existing, recent, expected_step_ms)
+            candidate, new_count, revised_count, reason = merge_recent(existing, recent, expected_step_ms, target_count)
             changed = legacy_schema or row_signature(candidate) != row_signature(existing)
             if legacy_schema and reason == "incremental_recent_overlap":
                 reason = "legacy_timezone_schema_migration_plus_recent_overlap"
@@ -498,7 +530,7 @@ def update_timeframe(client: OKXPublicClient, bar: str, expected_step_ms: int, f
         fallback_reason = "forced_full_refresh"
 
     full_rows = fetch_full_history(client, bar)
-    validate_rows(full_rows, expected_step_ms, COUNT)
+    validate_rows(full_rows, expected_step_ms, target_count)
     changed = existing is None or row_signature(full_rows) != row_signature(existing)
     old_timestamps = {int(row["timestamp_ms"]) for row in existing} if existing else set()
     new_count = sum(1 for row in full_rows if int(row["timestamp_ms"]) not in old_timestamps)
@@ -539,6 +571,7 @@ def build_metadata(results: list[UpdateResult], previous_metadata: dict[str, Any
     for result in results:
         step_ms = BARS[result.bar]
         timestamps = [int(row["timestamp_ms"]) for row in result.rows]
+        expected_count = count_for_bar(result.bar)
         timeframes[result.bar] = {
             "bar": result.bar,
             "row_count": len(result.rows),
@@ -550,7 +583,7 @@ def build_metadata(results: list[UpdateResult], previous_metadata: dict[str, Any
             "unique_timestamp_count": len(set(timestamps)),
             "interval_anomaly_count": 0,
             "all_confirmed": True,
-            "csv_filename": f"{INSTRUMENT}_{result.bar}_{COUNT}_confirmed.csv",
+            "csv_filename": f"{INSTRUMENT}_{result.bar}_{expected_count}_confirmed.csv",
             "update": {
                 "mode": result.mode,
                 "reason": result.reason,
@@ -561,7 +594,7 @@ def build_metadata(results: list[UpdateResult], previous_metadata: dict[str, Any
         }
 
     metadata: dict[str, Any] = {
-        "schema_version": "3.0",
+        "schema_version": "3.1",
         "instrument": INSTRUMENT,
         "instrument_type": "USDT-margined perpetual swap",
         "timezone": {
@@ -576,12 +609,12 @@ def build_metadata(results: list[UpdateResult], previous_metadata: dict[str, Any
         },
         "completed_candles_only": True,
         "sort_order": "ascending by candle open timestamp; human-readable display is Asia/Shanghai",
-        "requested_rows_per_timeframe": COUNT,
+        "requested_rows_per_timeframe": {bar: count_for_bar(bar) for bar in BARS},
         "recent_overlap_limit": RECENT_LIMIT,
         "rate_limit_policy": {
             "minimum_request_interval_seconds": MIN_REQUEST_INTERVAL_SECONDS,
             "max_retries": MAX_RETRIES,
-            "note": "Single-process pacing, Retry-After-aware retry, and no proxy/user-agent rotation.",
+            "note": "Single-process pacing, Retry-After-aware retry, randomized jitter, and pagination anti-ban throttling.",
         },
         "last_successful_data_update_beijing": beijing_now(),
         "timeframes": timeframes,
@@ -597,7 +630,7 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument(
         "--full-refresh",
         action="store_true",
-        help="Ignore local CSV files and re-download all 8,640 completed candles per timeframe.",
+        help="Ignore local CSV files and re-download all 360 days of completed candles per timeframe.",
     )
     parser.add_argument(
         "--dry-run",
@@ -629,7 +662,7 @@ def main() -> int:
             )
 
         data_changed = any(result.changed for result in results)
-        metadata_needs_migration = previous_metadata.get("schema_version") != "3.0"
+        metadata_needs_migration = previous_metadata.get("schema_version") != "3.1"
         should_write_metadata = data_changed or metadata_needs_migration
 
         if args.dry_run:
@@ -638,19 +671,20 @@ def main() -> int:
 
         for result in results:
             if result.changed:
-                atomic_write_csv(ROOT / f"{INSTRUMENT}_{result.bar}_{COUNT}_confirmed.csv", result.rows)
+                csv_name = f"{INSTRUMENT}_{result.bar}_{count_for_bar(result.bar)}_confirmed.csv"
+                atomic_write_csv(ROOT / csv_name, result.rows)
 
         if should_write_metadata:
             metadata = build_metadata(results, previous_metadata)
             for result in results:
-                csv_path = ROOT / f"{INSTRUMENT}_{result.bar}_{COUNT}_confirmed.csv"
+                csv_path = ROOT / f"{INSTRUMENT}_{result.bar}_{count_for_bar(result.bar)}_confirmed.csv"
                 metadata["timeframes"][result.bar]["csv_sha256"] = sha256(csv_path)
             atomic_write_json(metadata_path, metadata)
 
         if data_changed:
             print("Update complete: Beijing-time datasets and metadata were written atomically.", flush=True)
         elif metadata_needs_migration:
-            print("No candle changes; Beijing-time metadata schema was migrated.", flush=True)
+            print("No candle changes; metadata schema was migrated.", flush=True)
         else:
             print("No new or revised completed candles; repository data was left unchanged.", flush=True)
 
