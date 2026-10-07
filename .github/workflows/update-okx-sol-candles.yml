@@ -9,7 +9,7 @@ on:
   workflow_dispatch:
     inputs:
       full_refresh:
-        description: "Force a full 8,640-bar historical refresh for every timeframe"
+        description: "Force a full 8,640-bar historical refresh for every timeframe (can take 20-40+ minutes)"
         required: false
         default: false
         type: boolean
@@ -31,7 +31,7 @@ jobs:
   update-candles:
     name: Incrementally update Beijing-time CSV data
     runs-on: ubuntu-latest
-    timeout-minutes: 15
+    timeout-minutes: 60
 
     steps:
       - name: Check out repository
@@ -51,6 +51,7 @@ jobs:
           set -euo pipefail
           echo "Workflow time (Beijing): $(date '+%Y-%m-%d %H:%M:%S %z')"
           if [[ "${{ github.event.inputs.full_refresh }}" == "true" ]]; then
+            echo "Full historical backfill requested. This may take longer than the default incremental path."
             python3 download_okx_sol_perp_klines.py --full-refresh
           else
             python3 download_okx_sol_perp_klines.py
