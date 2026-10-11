@@ -1,6 +1,6 @@
 # SOL-USDT-SWAP · OKX 永续合约 K 线数据
 
-本仓库保存 OKX `SOL-USDT-SWAP`（SOL USDT 本位永续合约）的已收盘 OHLCV K 线数据，并通过 GitHub Actions 每 2 小时增量更新一次。
+本仓库保存 OKX `SOL-USDT-SWAP`（SOL USDT 本位永续合约）的已收盘 OHLCV K 线数据，并通过 GitHub Actions 每 4 小时增量更新一次（北京时间 00:07、04:07、08:07、12:07、16:07、20:07）。
 
 > **时区标准：本仓库全部可读时间均使用北京时间（Asia/Shanghai，UTC+08:00）。**
 > 数据仅用于研究、回测和分析，不构成交易建议或收益保证。
@@ -76,11 +76,11 @@ python3 download_okx_sol_perp_klines.py --full-refresh
 - CSV 与 metadata 使用临时文件加原子替换，避免中途失败写坏旧数据；
 - GitHub Actions 使用并发组，避免计划任务与手动任务重叠。
 
-## GitHub Actions：每 2 小时更新
+## GitHub Actions：每 4 小时更新
 
 工作流文件：[`.github/workflows/update-okx-sol-candles.yml`](.github/workflows/update-okx-sol-candles.yml)
 
-- GitHub Actions 的 cron 语法按 UTC 解释；`7 */2 * * *` 对应北京时间每天 `00:07、02:07、04:07 … 22:07`；
+- GitHub Actions 的 cron 语法按 UTC 解释；`7 */4 * * *` 对应北京时间每天 `00:07、04:07、08:07、12:07、16:07、20:07`；
 - 工作流和 Python 进程均设置 `TZ=Asia/Shanghai`；
 - 第 7 分钟为新收盘 K 线留出短暂确认缓冲；
 - 支持在 Actions 页面手动运行；手动运行时可选择 `full_refresh=true`；

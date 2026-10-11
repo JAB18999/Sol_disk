@@ -2,10 +2,11 @@ name: Update OKX SOL perpetual candles
 
 on:
   schedule:
-    # GitHub evaluates cron in UTC. UTC 00:07, 02:07, ... maps exactly to
-    # Beijing time 08:07, 10:07, ...; across midnight this is every two hours
-    # at :07 Beijing time as well.
-    - cron: "7 */2 * * *"
+    # GitHub evaluates cron in UTC. UTC 00:07, 04:07, 08:07, 12:07, 16:07,
+    # 20:07 maps exactly to Beijing time 08:07, 12:07, 16:07, 20:07 and
+    # 00:07, 04:07 (across midnight): every four hours at :07 Beijing time,
+    # starting from 00:07.
+    - cron: "7 */4 * * *"
   workflow_dispatch:
     inputs:
       full_refresh:
