@@ -11,13 +11,13 @@
 
 | 周期 | 文件 | 行数 |
 |---|---|---:|
-| 5 分钟 | `SOL-USDT-SWAP_5m_103680_confirmed.csv` | 103,680 |
-| 15 分钟 | `SOL-USDT-SWAP_15m_34560_confirmed.csv` | 34,560 |
-| 30 分钟 | `SOL-USDT-SWAP_30m_17280_confirmed.csv` | 17,280 |
-| 1 小时 | `SOL-USDT-SWAP_1H_8640_confirmed.csv` | 8,640 |
-| 2 小时 | `SOL-USDT-SWAP_2H_4320_confirmed.csv` | 4,320 |
+| 5 分钟 | `DATA/SOL-USDT-SWAP_5m_103680_confirmed.csv` | 103,680 |
+| 15 分钟 | `DATA/SOL-USDT-SWAP_15m_34560_confirmed.csv` | 34,560 |
+| 30 分钟 | `DATA/SOL-USDT-SWAP_30m_17280_confirmed.csv` | 17,280 |
+| 1 小时 | `DATA/SOL-USDT-SWAP_1H_8640_confirmed.csv` | 8,640 |
+| 2 小时 | `DATA/SOL-USDT-SWAP_2H_4320_confirmed.csv` | 4,320 |
 
-`metadata.json` 记录每个周期的数据覆盖范围、校验信息、更新模式、文件 SHA-256 和统一时区定义。
+`DATA/metadata.json` 记录每个周期的数据覆盖范围、校验信息、更新模式、文件 SHA-256 和统一时区定义。
 
 ## 统一时间字段
 
@@ -38,7 +38,7 @@ vol, volCcy, volCcyQuote, confirm
 
 ## 增量更新脚本
 
-脚本：[`download_okx_sol_perp_klines.py`](download_okx_sol_perp_klines.py)
+脚本：[`download_okx_sol_perp_klines.py`](download_okx_sol_perp_klines.py)（数据统一存放在 [`DATA/`](DATA/) 目录，更新器对该目录内的 CSV 与 `metadata.json` 做增量维护）
 
 ```bash
 python3 download_okx_sol_perp_klines.py

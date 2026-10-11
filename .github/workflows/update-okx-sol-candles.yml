@@ -63,12 +63,12 @@ jobs:
         run: |
           set -euo pipefail
           git add \
-            SOL-USDT-SWAP_5m_103680_confirmed.csv \
-            SOL-USDT-SWAP_15m_34560_confirmed.csv \
-            SOL-USDT-SWAP_30m_17280_confirmed.csv \
-            SOL-USDT-SWAP_1H_8640_confirmed.csv \
-            SOL-USDT-SWAP_2H_4320_confirmed.csv \
-            metadata.json
+            DATA/SOL-USDT-SWAP_5m_103680_confirmed.csv \
+            DATA/SOL-USDT-SWAP_15m_34560_confirmed.csv \
+            DATA/SOL-USDT-SWAP_30m_17280_confirmed.csv \
+            DATA/SOL-USDT-SWAP_1H_8640_confirmed.csv \
+            DATA/SOL-USDT-SWAP_2H_4320_confirmed.csv \
+            DATA/metadata.json
 
           if git diff --cached --quiet; then
             echo "No new completed candles or metadata changes; nothing to commit."

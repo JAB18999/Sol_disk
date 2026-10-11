@@ -40,6 +40,9 @@ from typing import Any
 from zoneinfo import ZoneInfo
 
 ROOT = Path(__file__).resolve().parent
+# All versioned datasets and metadata live in DATA/. The lock file stays at the
+# repository root so concurrent runs across checkouts cannot collide.
+DATA_DIR = ROOT / "DATA"
 INSTRUMENT = "SOL-USDT-SWAP"
 TARGET_DAYS = 360
 RECENT_LIMIT = 300
@@ -499,7 +502,7 @@ class UpdateResult:
 
 def update_timeframe(client: OKXPublicClient, bar: str, expected_step_ms: int, force_full: bool) -> UpdateResult:
     target_count = count_for_bar(bar)
-    path = ROOT / f"{INSTRUMENT}_{bar}_{target_count}_confirmed.csv"
+    path = DATA_DIR / f"{INSTRUMENT}_{bar}_{target_count}_confirmed.csv"
     before_requests = client.request_count
     existing: list[dict[str, str]] | None = None
     fallback_reason: str | None = None
@@ -643,7 +646,8 @@ def parse_args() -> argparse.Namespace:
 def main() -> int:
     args = parse_args()
     ROOT.mkdir(parents=True, exist_ok=True)
-    metadata_path = ROOT / "metadata.json"
+    DATA_DIR.mkdir(parents=True, exist_ok=True)
+    metadata_path = DATA_DIR / "metadata.json"
 
     with UpdateLock(LOCK_FILE):
         previous_metadata = read_previous_metadata(metadata_path)
@@ -672,12 +676,12 @@ def main() -> int:
         for result in results:
             if result.changed:
                 csv_name = f"{INSTRUMENT}_{result.bar}_{count_for_bar(result.bar)}_confirmed.csv"
-                atomic_write_csv(ROOT / csv_name, result.rows)
+                atomic_write_csv(DATA_DIR / csv_name, result.rows)
 
         if should_write_metadata:
             metadata = build_metadata(results, previous_metadata)
             for result in results:
-                csv_path = ROOT / f"{INSTRUMENT}_{result.bar}_{count_for_bar(result.bar)}_confirmed.csv"
+                csv_path = DATA_DIR / f"{INSTRUMENT}_{result.bar}_{count_for_bar(result.bar)}_confirmed.csv"
                 metadata["timeframes"][result.bar]["csv_sha256"] = sha256(csv_path)
             atomic_write_json(metadata_path, metadata)
 
