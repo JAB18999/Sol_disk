@@ -6,5 +6,3 @@ __pycache__/
 .DS_Store
 .okx_candle_update.lock
 .*.tmp
-# Backtest trade logs are reproducible from the script; keep them local only.
-TRADE/results/*/trades_*.csv
