@@ -8,10 +8,17 @@ It only fetches a small number of confirmed candles and prints a verifiable
 summary: the exact endpoint used, the HTTP status, the returned symbol, the
 candle count, the first/last timestamps, and a sample OHLC row.
 
-Binance market endpoints probed
-    USDT-M perpetual (futures): https://fapi.binance.com/fapi/v1/klines
-        (also tried: fapi1 / fapi2 / fapi3 / fapi4 .binance.com)
-    Spot (reference only):      https://api.binance.com/api/v3/klines
+Binance official endpoints probed
+    USDT-M perpetual (futures) - /fapi/v1/klines (the real data source):
+        primary : https://fapi.binance.com
+        backups : https://fapi1.binance.com, fapi2, fapi3, fapi4
+    Spot REST base endpoints - /api/v3/klines (reachability reference only,
+    these do NOT supply perpetual data):
+        https://api.binance.com
+        https://api-gcp.binance.com
+        https://api1.binance.com, api2, api3, api4
+        https://data-api.binance.vision   (official public market-data domain)
+        https://api.binance.us            (Binance.US entity, spot only)
 
 Symbol mapping
     SOL-USDT-SWAP in OKX notation  ->  SOLUSDT on Binance (USDT-margined
@@ -19,7 +26,7 @@ Symbol mapping
 
 Exit codes
     0  at least one futures endpoint returned valid SOLUSDT candles
-    1  all probes failed
+    1  all futures probes failed
 
 Run
     python3 test_binance_sol_perp_access.py
@@ -41,7 +48,8 @@ INTERVAL = "15m"
 LIMIT = 10  # only probe a tiny window; this is a connectivity test
 BEIJING_TIMEZONE = ZoneInfo("Asia/Shanghai")
 
-# USDT-margined perpetual futures endpoints (primary + regional mirrors).
+# USDT-margined perpetual futures endpoints: primary + official backups.
+# These are the endpoints that actually serve /fapi/v1/klines for SOLUSDT.
 FUTURES_ENDPOINTS = [
     "https://fapi.binance.com",
     "https://fapi1.binance.com",
@@ -49,16 +57,27 @@ FUTURES_ENDPOINTS = [
     "https://fapi3.binance.com",
     "https://fapi4.binance.com",
 ]
-# Spot endpoint is probed only to confirm that Binance's general API is
-# reachable when the futures domain is blocked; it does NOT supply
-# perpetual data and is never used as a fallback for futures candles.
-SPOT_ENDPOINT = "https://api.binance.com"
+
+# Spot REST base endpoints (official primary + backups + public data domain).
+# Probed only to gauge overall Binance reachability; they never serve
+# perpetual candles and are NOT used as a fallback for futures data.
+SPOT_ENDPOINTS = [
+    "https://api.binance.com",
+    "https://api-gcp.binance.com",
+    "https://api1.binance.com",
+    "https://api2.binance.com",
+    "https://api3.binance.com",
+    "https://api4.binance.com",
+    "https://data-api.binance.vision",
+    "https://api.binance.us",
+]
 
 HEADERS = {
     "User-Agent": "Mozilla/5.0 (compatible; binance-sol-perp-probe/1.0)",
     "Accept": "application/json",
 }
 MAX_RETRIES = 3
+TIMEOUT_SECONDS = 20
 
 
 def beijing_time(timestamp_ms: int) -> str:
@@ -66,34 +85,48 @@ def beijing_time(timestamp_ms: int) -> str:
     return instant.astimezone(BEIJING_TIMEZONE).isoformat()
 
 
-def fetch_json(base_url: str, params: dict[str, str], market_type: str) -> dict | list | None:
-    """Fetch JSON from one Binance endpoint; return parsed body or None on failure."""
+def fetch_json(base_url: str, params: dict[str, str], market_type: str):
+    """Fetch JSON from one Binance endpoint.
+
+    Returns (payload, status_note) where payload is the parsed JSON body
+    (or None on failure) and status_note is a short human-readable reason.
+    """
     url = f"{base_url}?{urllib.parse.urlencode(params)}"
+    note = "no response"
     for attempt in range(MAX_RETRIES):
         try:
             request = urllib.request.Request(url, headers=HEADERS)
-            with urllib.request.urlopen(request, timeout=20) as response:
-                payload = json.loads(response.read().decode("utf-8"))
-            return payload
+            with urllib.request.urlopen(request, timeout=TIMEOUT_SECONDS) as response:
+                raw = response.read().decode("utf-8")
+                return json.loads(raw), f"HTTP {response.status}"
         except urllib.error.HTTPError as exc:
-            detail = f"HTTP {exc.code}"
+            body = ""
             try:
-                detail += f" {exc.read().decode('utf-8')[:200]}"
+                body = exc.read().decode("utf-8", "replace")
             except Exception:
                 pass
-            print(f"  [{market_type}] {base_url}: {detail}")
-            if exc.code in {400, 401, 403, 404, 429}:
-                return None  # do not retry parameter/auth/limit errors
-        except (urllib.error.URLError, TimeoutError, json.JSONDecodeError) as exc:
-            print(f"  [{market_type}] {base_url}: {type(exc).__name__}: {exc}")
+            note = f"HTTP {exc.code}"
+            if "restricted location" in body:
+                note += " (geo-blocked: restricted location)"
+            print(f"  [{market_type}] {base_url}: {note}")
+            # 4xx (incl. 451 geo-block) / 429 are not worth retrying.
+            if exc.code in {400, 401, 403, 404, 429, 451}:
+                return None, note
+        except json.JSONDecodeError:
+            note = "JSONDecodeError (non-JSON response, likely a block page)"
+            print(f"  [{market_type}] {base_url}: {note}")
+            return None, note
+        except (urllib.error.URLError, TimeoutError) as exc:
+            note = f"{type(exc).__name__}: {exc}"
+            print(f"  [{market_type}] {base_url}: {note}")
         if attempt < MAX_RETRIES - 1:
             time.sleep(random.uniform(0.5, 2.0))
-    return None
+    return None, note
 
 
 def probe_futures(base_url: str) -> bool:
     """Try to fetch SOLUSDT perpetual candles from one futures endpoint."""
-    payload = fetch_json(
+    payload, note = fetch_json(
         base_url,
         {"symbol": SYMBOL, "interval": INTERVAL, "limit": str(LIMIT)},
         market_type="futures",
@@ -110,7 +143,7 @@ def probe_futures(base_url: str) -> bool:
         return False
     open_time = int(first[0])
     close_time = int(last[6])
-    print(f"  [futures] {base_url}: OK")
+    print(f"  [futures] {base_url}: OK ({note})")
     print(f"      symbol       : {SYMBOL} (USDT-margined perpetual)")
     print(f"      interval     : {INTERVAL}")
     print(f"      candles      : {len(payload)}")
@@ -128,40 +161,60 @@ def probe_futures(base_url: str) -> bool:
     return True
 
 
-def probe_spot() -> None:
-    """Probe the spot endpoint as a reachability reference only."""
-    payload = fetch_json(
-        SPOT_ENDPOINT,
-        {"symbol": SYMBOL, "interval": INTERVAL, "limit": str(1)},
+def probe_spot(base_url: str) -> bool:
+    """Probe a spot base endpoint as a reachability reference only."""
+    payload, note = fetch_json(
+        base_url,
+        {"symbol": SYMBOL, "interval": INTERVAL, "limit": "1"},
         market_type="spot",
     )
-    if isinstance(payload, list) and payload:
-        print(f"  [spot]    {SPOT_ENDPOINT}: OK (spot market reachable, NOT used for futures)")
-    else:
-        print(f"  [spot]    {SPOT_ENDPOINT}: unreachable")
+    ok = isinstance(payload, list) and bool(payload)
+    if ok:
+        print(f"  [spot]    {base_url}: OK ({note}) (NOT used for futures)")
+    return ok
 
 
 def main() -> int:
-    print(f"Binance SOL perpetual connectivity probe")
+    print("Binance SOL perpetual connectivity probe")
     print(f"  symbol   : {SYMBOL}")
     print(f"  interval : {INTERVAL}")
     print(f"  limit    : {LIMIT}")
     print()
 
-    print("Probing USDT-margined perpetual futures endpoints (/fapi/v1/klines):")
-    any_success = False
+    print("Futures endpoints (USDT-M perpetual, /fapi/v1/klines):")
+    futures_ok: list[str] = []
+    futures_results: list[tuple[str, str]] = []
     for base_url in FUTURES_ENDPOINTS:
         if probe_futures(base_url):
-            any_success = True
-            break  # one working endpoint is enough to prove futures access
+            futures_ok.append(base_url)
+            futures_results.append((base_url, "SUCCESS"))
+        else:
+            futures_results.append((base_url, "FAIL"))
+            print(f"  [futures] {base_url}: FAIL")
 
     print()
-    print("Reference probe of spot endpoint (NOT a futures data source):")
-    probe_spot()
+    print("Spot base endpoints (reachability reference, /api/v3/klines):")
+    spot_results: list[tuple[str, str]] = []
+    for base_url in SPOT_ENDPOINTS:
+        ok = probe_spot(base_url)
+        spot_results.append((base_url, "OK" if ok else "FAIL"))
+        if not ok:
+            print(f"  [spot]    {base_url}: FAIL")
 
     print()
-    if any_success:
-        print("RESULT: SUCCESS - this runtime can download Binance SOLUSDT perpetual candles.")
+    print("Summary:")
+    print(f"  futures endpoints reachable: {len(futures_ok)}/{len(FUTURES_ENDPOINTS)}")
+    for base_url, status in futures_results:
+        print(f"      [{status:7}] {base_url}")
+    print(f"  spot endpoints reachable   : "
+          f"{sum(1 for _, s in spot_results if s == 'OK')}/{len(SPOT_ENDPOINTS)}")
+    for base_url, status in spot_results:
+        print(f"      [{status:4}] {base_url}")
+
+    print()
+    if futures_ok:
+        print("RESULT: SUCCESS - this runtime can download Binance SOLUSDT perpetual "
+              f"candles from: {', '.join(futures_ok)}")
         return 0
     print("RESULT: FAILURE - no Binance futures endpoint returned valid SOLUSDT candles.")
     return 1
