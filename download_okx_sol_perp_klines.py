@@ -560,6 +560,37 @@ def update_timeframe(client: OKXPublicClient, bar: str, expected_step_ms: int, f
     )
 
 
+def align_results_to_anchor(results: list[UpdateResult], anchor_bar: str = "2H") -> int:
+    """Truncate every timeframe so its last candle lines up with the anchor (2H).
+
+    Each timeframe independently keeps its latest confirmed candle, so without
+    alignment the last row of 5m/15m/30m/1H is always newer than 2H because
+    lower-frequency candles take longer to close. This function truncates all
+    timeframes to the open timestamp of the anchor's last confirmed candle so
+    that every CSV ends on the same 2H-aligned boundary.
+
+    Returns the total number of rows removed across all timeframes.
+    """
+    anchor_result = next((r for r in results if r.bar == anchor_bar), None)
+    if anchor_result is None or not anchor_result.rows:
+        print(f"anchor timeframe {anchor_bar} has no rows; skipping alignment.", flush=True)
+        return 0
+    anchor_ts = int(anchor_result.rows[-1]["timestamp_ms"])
+    removed = 0
+    for result in results:
+        before = len(result.rows)
+        result.rows = [row for row in result.rows if int(row["timestamp_ms"]) <= anchor_ts]
+        removed += before - len(result.rows)
+        if before != len(result.rows):
+            result.changed = True
+    print(
+        f"Alignment to {anchor_bar} boundary (open ts {anchor_ts}, "
+        f"{beijing_time(anchor_ts)}): removed {removed} rows total.",
+        flush=True,
+    )
+    return removed
+
+
 def read_previous_metadata(path: Path) -> dict[str, Any]:
     if not path.exists():
         return {}
@@ -664,6 +695,8 @@ def main() -> int:
                 f"requests={result.api_requests}, reason={result.reason}",
                 flush=True,
             )
+
+        align_results_to_anchor(results, anchor_bar="2H")
 
         data_changed = any(result.changed for result in results)
         metadata_needs_migration = previous_metadata.get("schema_version") != "3.1"
