@@ -27,70 +27,70 @@
     "max_retries": 6,
     "note": "Single-process pacing, Retry-After-aware retry, randomized jitter, and pagination anti-ban throttling."
   },
-  "last_successful_data_update_beijing": "2026-10-16T21:05:01.592787+08:00",
+  "last_successful_data_update_beijing": "2026-10-16T21:38:23.742228+08:00",
   "timeframes": {
     "5m": {
       "bar": "5m",
-      "row_count": 103651,
-      "start_timestamp_ms": "1761049800000",
+      "row_count": 103644,
+      "start_timestamp_ms": "1761051900000",
       "end_timestamp_ms": "1792144800000",
-      "start_time_beijing": "2025-10-21T20:30:00+08:00",
+      "start_time_beijing": "2025-10-21T21:05:00+08:00",
       "end_time_beijing": "2026-10-16T18:00:00+08:00",
       "expected_step_ms": 300000,
-      "unique_timestamp_count": 103651,
+      "unique_timestamp_count": 103644,
       "interval_anomaly_count": 0,
       "all_confirmed": true,
       "csv_filename": "SOL-USDT-SWAP_5m_103680_confirmed.csv",
       "update": {
         "mode": "full_backfill",
-        "reason": "Expected 103680 rows, received 103656",
+        "reason": "Expected 103680 rows, received 103651",
         "new_candles": 103680,
         "revised_candles": 0,
         "api_requests": 346
       },
-      "csv_sha256": "71a77a060567f24a2e68b165ab7c01cdfc96999be728c86ece8982a95bf4e572"
+      "csv_sha256": "0d8c9b552ce960dc8f92535c7cda1c27631b5166c5e3a740bebb336b187a7987"
     },
     "15m": {
       "bar": "15m",
-      "row_count": 34550,
-      "start_timestamp_ms": "1761050700000",
+      "row_count": 34548,
+      "start_timestamp_ms": "1761052500000",
       "end_timestamp_ms": "1792144800000",
-      "start_time_beijing": "2025-10-21T20:45:00+08:00",
+      "start_time_beijing": "2025-10-21T21:15:00+08:00",
       "end_time_beijing": "2026-10-16T18:00:00+08:00",
       "expected_step_ms": 900000,
-      "unique_timestamp_count": 34550,
+      "unique_timestamp_count": 34548,
       "interval_anomaly_count": 0,
       "all_confirmed": true,
       "csv_filename": "SOL-USDT-SWAP_15m_34560_confirmed.csv",
       "update": {
         "mode": "full_backfill",
-        "reason": "Expected 34560 rows, received 34552",
+        "reason": "Expected 34560 rows, received 34550",
         "new_candles": 34560,
         "revised_candles": 0,
         "api_requests": 116
       },
-      "csv_sha256": "365cdadf7807b6ce004e6771a88199f268e42aae91803a6a5c47c33632e42e38"
+      "csv_sha256": "b0a55fcad9e4c0acbcd5132c3a4b26f557d57cb0efcbf75e163ef4e245b97131"
     },
     "30m": {
       "bar": "30m",
-      "row_count": 17275,
-      "start_timestamp_ms": "1761051600000",
+      "row_count": 17274,
+      "start_timestamp_ms": "1761053400000",
       "end_timestamp_ms": "1792144800000",
-      "start_time_beijing": "2025-10-21T21:00:00+08:00",
+      "start_time_beijing": "2025-10-21T21:30:00+08:00",
       "end_time_beijing": "2026-10-16T18:00:00+08:00",
       "expected_step_ms": 1800000,
-      "unique_timestamp_count": 17275,
+      "unique_timestamp_count": 17274,
       "interval_anomaly_count": 0,
       "all_confirmed": true,
       "csv_filename": "SOL-USDT-SWAP_30m_17280_confirmed.csv",
       "update": {
         "mode": "full_backfill",
-        "reason": "Expected 17280 rows, received 17276",
+        "reason": "Expected 17280 rows, received 17275",
         "new_candles": 17280,
         "revised_candles": 0,
         "api_requests": 58
       },
-      "csv_sha256": "e2409e55af1b51c7cf2f1eaf594d3e28c10a9393c6b7effcb5c7b790a3ed1ae8"
+      "csv_sha256": "f82efcea9c50377d4114f3b0654c9bc58a58cc0229b649022e9314a2e2772316"
     },
     "1H": {
       "bar": "1H",
@@ -106,7 +106,7 @@
       "csv_filename": "SOL-USDT-SWAP_1H_8640_confirmed.csv",
       "update": {
         "mode": "full_backfill",
-        "reason": "Expected 8640 rows, received 8639",
+        "reason": "Expected 8640 rows, received 8638",
         "new_candles": 8640,
         "revised_candles": 0,
         "api_requests": 29
@@ -128,7 +128,7 @@
       "update": {
         "mode": "incremental",
         "reason": "incremental_recent_overlap",
-        "new_candles": 4,
+        "new_candles": 0,
         "revised_candles": 0,
         "api_requests": 1
       },
