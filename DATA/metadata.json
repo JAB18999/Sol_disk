@@ -27,36 +27,36 @@
     "max_retries": 6,
     "note": "Single-process pacing, Retry-After-aware retry, randomized jitter, and pagination anti-ban throttling."
   },
-  "last_successful_data_update_beijing": "2026-10-17T12:28:39.191692+08:00",
+  "last_successful_data_update_beijing": "2026-10-17T20:35:06.308586+08:00",
   "timeframes": {
     "5m": {
       "bar": "5m",
-      "row_count": 103658,
-      "start_timestamp_ms": "1761105300000",
-      "end_timestamp_ms": "1792202400000",
-      "start_time_beijing": "2025-10-22T11:55:00+08:00",
-      "end_time_beijing": "2026-10-17T10:00:00+08:00",
+      "row_count": 103657,
+      "start_timestamp_ms": "1761134400000",
+      "end_timestamp_ms": "1792231200000",
+      "start_time_beijing": "2025-10-22T20:00:00+08:00",
+      "end_time_beijing": "2026-10-17T18:00:00+08:00",
       "expected_step_ms": 300000,
-      "unique_timestamp_count": 103658,
+      "unique_timestamp_count": 103657,
       "interval_anomaly_count": 0,
       "all_confirmed": true,
       "csv_filename": "SOL-USDT-SWAP_5m_103680_confirmed.csv",
       "update": {
         "mode": "full_backfill",
-        "reason": "Expected 103680 rows, received 103640",
+        "reason": "Expected 103680 rows, received 103658",
         "new_candles": 103680,
         "revised_candles": 0,
         "api_requests": 346
       },
-      "csv_sha256": "9489f07baec6f3670dc4beb814da65dde88e6a99c70cb254745a7af321b5442c"
+      "csv_sha256": "fb2069a7373f204e243af90439b70a31c95c904c766b3e2c66d17f8dfae85aad"
     },
     "15m": {
       "bar": "15m",
       "row_count": 34552,
-      "start_timestamp_ms": "1761106500000",
-      "end_timestamp_ms": "1792202400000",
-      "start_time_beijing": "2025-10-22T12:15:00+08:00",
-      "end_time_beijing": "2026-10-17T10:00:00+08:00",
+      "start_timestamp_ms": "1761135300000",
+      "end_timestamp_ms": "1792231200000",
+      "start_time_beijing": "2025-10-22T20:15:00+08:00",
+      "end_time_beijing": "2026-10-17T18:00:00+08:00",
       "expected_step_ms": 900000,
       "unique_timestamp_count": 34552,
       "interval_anomaly_count": 0,
@@ -64,41 +64,41 @@
       "csv_filename": "SOL-USDT-SWAP_15m_34560_confirmed.csv",
       "update": {
         "mode": "full_backfill",
-        "reason": "Expected 34560 rows, received 34546",
+        "reason": "Expected 34560 rows, received 34552",
         "new_candles": 34560,
         "revised_candles": 0,
         "api_requests": 116
       },
-      "csv_sha256": "fd633cab8895b19caec208d3ce29a1b19c24c2909d28dc4046644050b28b0ab6"
+      "csv_sha256": "3c4d607c11da7c97297bef685902031bdefed285a4b639816429b98a51355804"
     },
     "30m": {
       "bar": "30m",
-      "row_count": 17277,
-      "start_timestamp_ms": "1761105600000",
-      "end_timestamp_ms": "1792202400000",
-      "start_time_beijing": "2025-10-22T12:00:00+08:00",
-      "end_time_beijing": "2026-10-17T10:00:00+08:00",
+      "row_count": 17276,
+      "start_timestamp_ms": "1761136200000",
+      "end_timestamp_ms": "1792231200000",
+      "start_time_beijing": "2025-10-22T20:30:00+08:00",
+      "end_time_beijing": "2026-10-17T18:00:00+08:00",
       "expected_step_ms": 1800000,
-      "unique_timestamp_count": 17277,
+      "unique_timestamp_count": 17276,
       "interval_anomaly_count": 0,
       "all_confirmed": true,
       "csv_filename": "SOL-USDT-SWAP_30m_17280_confirmed.csv",
       "update": {
         "mode": "full_backfill",
-        "reason": "Expected 17280 rows, received 17274",
+        "reason": "Expected 17280 rows, received 17277",
         "new_candles": 17280,
         "revised_candles": 0,
         "api_requests": 58
       },
-      "csv_sha256": "2109016348d6b15f30ffbf921c88a275d73f95284c14b92184348f9e5f2e6ff3"
+      "csv_sha256": "f19168c1570a271303607b84b92ccfc5932249292748700ab308e0c75d276d76"
     },
     "1H": {
       "bar": "1H",
       "row_count": 8639,
-      "start_timestamp_ms": "1761105600000",
-      "end_timestamp_ms": "1792202400000",
-      "start_time_beijing": "2025-10-22T12:00:00+08:00",
-      "end_time_beijing": "2026-10-17T10:00:00+08:00",
+      "start_timestamp_ms": "1761134400000",
+      "end_timestamp_ms": "1792231200000",
+      "start_time_beijing": "2025-10-22T20:00:00+08:00",
+      "end_time_beijing": "2026-10-17T18:00:00+08:00",
       "expected_step_ms": 3600000,
       "unique_timestamp_count": 8639,
       "interval_anomaly_count": 0,
@@ -106,20 +106,20 @@
       "csv_filename": "SOL-USDT-SWAP_1H_8640_confirmed.csv",
       "update": {
         "mode": "full_backfill",
-        "reason": "Expected 8640 rows, received 8638",
+        "reason": "Expected 8640 rows, received 8639",
         "new_candles": 8640,
         "revised_candles": 0,
         "api_requests": 29
       },
-      "csv_sha256": "4cae650fe5413d145435883f2c3f4f2d99f4a3f2446026bf8fb15ab55bce8a5d"
+      "csv_sha256": "e38c69eb05f564f648cd3e412c223c8b34c02cf2323a381b1c1ba2461160ae17"
     },
     "2H": {
       "bar": "2H",
       "row_count": 4320,
-      "start_timestamp_ms": "1761105600000",
-      "end_timestamp_ms": "1792202400000",
-      "start_time_beijing": "2025-10-22T12:00:00+08:00",
-      "end_time_beijing": "2026-10-17T10:00:00+08:00",
+      "start_timestamp_ms": "1761134400000",
+      "end_timestamp_ms": "1792231200000",
+      "start_time_beijing": "2025-10-22T20:00:00+08:00",
+      "end_time_beijing": "2026-10-17T18:00:00+08:00",
       "expected_step_ms": 7200000,
       "unique_timestamp_count": 4320,
       "interval_anomaly_count": 0,
@@ -128,11 +128,11 @@
       "update": {
         "mode": "incremental",
         "reason": "incremental_recent_overlap",
-        "new_candles": 5,
+        "new_candles": 4,
         "revised_candles": 0,
         "api_requests": 1
       },
-      "csv_sha256": "91b97211a2fefb021bbbb2b48864d7152e12f11a31dad8a6fe4268d9528e97a2"
+      "csv_sha256": "ad6cd8de4585e045daf9762a769e1e3c82ef2d4f508ab2605ba42e6fa0861c2b"
     }
   },
   "instrument_snapshot": [
