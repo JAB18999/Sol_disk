@@ -376,12 +376,28 @@ def read_existing_csv(path: Path, expected_step_ms: int, expected_count: int) ->
     except (OSError, KeyError, TypeError, ValueError) as exc:
         raise DataValidationError(f"Unable to read a valid CSV schema from {path.name}") from exc
 
-    validate_rows(rows, expected_step_ms, expected_count)
+    validate_rows(rows, expected_step_ms, expected_count, allow_fewer=True)
     return rows, migrated_legacy_schema
 
 
-def validate_rows(rows: list[dict[str, str]], expected_step_ms: int, expected_count: int) -> None:
-    if len(rows) != expected_count:
+def validate_rows(
+    rows: list[dict[str, str]],
+    expected_step_ms: int,
+    expected_count: int,
+    allow_fewer: bool = False,
+) -> None:
+    """Validate continuity and integrity of a candle series.
+
+    When `allow_fewer` is true the series may hold fewer than `expected_count`
+    rows, because the 2H anchor alignment deliberately truncates the tail of the
+    lower timeframes. It may never hold more, and it must stay gap-free.
+    """
+    if allow_fewer:
+        if len(rows) > expected_count:
+            raise DataValidationError(f"Expected at most {expected_count} rows, received {len(rows)}")
+        if not rows:
+            raise DataValidationError("Dataset is empty")
+    elif len(rows) != expected_count:
         raise DataValidationError(f"Expected {expected_count} rows, received {len(rows)}")
 
     timestamps: list[int] = []
@@ -402,7 +418,7 @@ def validate_rows(rows: list[dict[str, str]], expected_step_ms: int, expected_co
             raise DataValidationError(f"Invalid row around timestamp {row.get('timestamp_ms')}") from exc
         timestamps.append(timestamp)
 
-    if len(set(timestamps)) != expected_count:
+    if len(set(timestamps)) != len(rows):
         raise DataValidationError("Duplicate candle timestamps")
     if timestamps != sorted(timestamps):
         raise DataValidationError("Candle timestamps are not sorted ascending")
@@ -451,7 +467,7 @@ def merge_recent(
 
     merged = [existing_by_ts[timestamp] for timestamp in sorted(existing_by_ts)]
     latest_window = merged[-expected_count:]
-    validate_rows(latest_window, expected_step_ms, expected_count)
+    validate_rows(latest_window, expected_step_ms, expected_count, allow_fewer=True)
     return latest_window, new_count, revised_count, "incremental_recent_overlap"
 
 
