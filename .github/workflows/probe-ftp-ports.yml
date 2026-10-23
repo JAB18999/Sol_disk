@@ -12,15 +12,13 @@ jobs:
     steps:
       - name: Scan ports
         run: |
+          echo "=== runner egress IP ==="; curl -s ifconfig.me; echo
           python3 - <<'PY'
           import concurrent.futures, socket
 
           HOST = "119.91.226.180"
-          # Focused scan: 2121 (control) + every 100 ports in 10000-10100 range
-          PORTS = (
-              [2121]
-              + list(range(10000, 10101))  # passive data range
-          )
+          # Compare 20/21 (previously refused) vs new 2121 + passive range
+          PORTS = [20, 21, 2121] + list(range(10000, 10101))
 
           def probe(port):
               s = socket.socket()
