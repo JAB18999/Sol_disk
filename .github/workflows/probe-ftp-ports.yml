@@ -59,4 +59,18 @@ jobs:
           print(f"OPEN: {[p for p,s,_ in sorted(results) if s=='OPEN']}")
           print(f"refused (host up, nothing listening) count={len(closed)}: {sorted(closed)}")
           print(f"timeout/filtered count={len(filtered)}: {sorted(filtered)}")
+
+          # Control test: known-good public FTP servers, to prove whether the
+          # runner has usable outbound FTP at all.
+          print("-" * 60)
+          print("CONTROL (public FTP reachability from this runner):")
+          for host in ("ftp.gnu.org", "test.rebex.net", "speedtest.tele2.net"):
+              try:
+                  s = socket.create_connection((host, 21), timeout=8)
+                  s.settimeout(5)
+                  banner = s.recv(200)
+                  print(f"  {host}:21 -> OPEN banner={banner[:80]!r}")
+                  s.close()
+              except Exception as exc:
+                  print(f"  {host}:21 -> {type(exc).__name__}: {exc}")
           PY
