@@ -29,7 +29,7 @@ ROOT = Path(__file__).resolve().parent
 DATA_DIR = ROOT / "DATA"
 
 DEFAULT_HOST = "119.91.226.180"
-DEFAULT_PORT = 21
+DEFAULT_PORT = 2121
 DEFAULT_USER = "test"
 DEFAULT_PASSWORD = "test"
 
