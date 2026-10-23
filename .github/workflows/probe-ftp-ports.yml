@@ -1,0 +1,62 @@
+name: Probe FTP ports
+
+# Temporary diagnostic: scan common FTP ports from a GitHub Actions runner
+# so we can tell which port the FTP server is actually listening on.
+on:
+  workflow_dispatch:
+
+jobs:
+  probe:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Scan ports
+        run: |
+          python3 - <<'PY'
+          import concurrent.futures, socket
+
+          HOST = "119.91.226.180"
+          PORTS = [
+              20, 21, 22, 25, 53, 80, 110, 143, 443, 445, 990, 993, 995,
+              1080, 1521, 2100, 2021, 2120, 2121, 2122, 3000, 3306, 3389,
+              5000, 5432, 5632, 6379, 8000, 8021, 8080, 8443, 8888, 9000,
+              9090, 10021, 10022, 40000, 40001, 40010, 40050, 40100,
+              50000, 50021, 60000,
+          ]
+
+          def probe(port):
+              s = socket.socket()
+              s.settimeout(4)
+              try:
+                  s.connect((HOST, port))
+                  banner = b""
+                  try:
+                      s.settimeout(3)
+                      banner = s.recv(200)
+                  except Exception:
+                      pass
+                  return (port, "OPEN", banner[:120].decode("utf-8", "replace").strip())
+              except ConnectionRefusedError:
+                  return (port, "refused", "")
+              except socket.timeout:
+                  return (port, "timeout/filtered", "")
+              except Exception as exc:
+                  return (port, type(exc).__name__, "")
+              finally:
+                  s.close()
+
+          with concurrent.futures.ThreadPoolExecutor(max_workers=20) as pool:
+              results = list(pool.map(probe, PORTS))
+
+          print(f"Target: {HOST}")
+          print("-" * 60)
+          for port, state, banner in sorted(results):
+              if state == "OPEN":
+                  print(f"port {port:>6}: OPEN      banner={banner!r}")
+          print("-" * 60)
+          closed = [p for p, s, _ in results if s == "refused"]
+          filtered = [p for p, s, _ in results if s.startswith("timeout")]
+          print(f"OPEN: {[p for p,s,_ in sorted(results) if s=='OPEN']}")
+          print(f"refused (host up, nothing listening) count={len(closed)}: {sorted(closed)}")
+          print(f"timeout/filtered count={len(filtered)}: {sorted(filtered)}")
+          PY
