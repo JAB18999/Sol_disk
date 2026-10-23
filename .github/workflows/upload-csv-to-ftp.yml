@@ -1,0 +1,43 @@
+name: Upload SOL candles to FTP
+
+# Trigger:
+#   - manually (workflow_dispatch)
+#   - automatically after the data-update workflow on main finishes successfully
+on:
+  workflow_dispatch:
+  workflow_run:
+    workflows: ["Update OKX SOL perpetual candles"]
+    types: [completed]
+    branches: [main]
+
+env:
+  TZ: Asia/Shanghai
+
+jobs:
+  upload:
+    name: Upload DATA/*.csv to FTP
+    runs-on: ubuntu-latest
+    # Only auto-run after a successful data update; manual dispatch always runs.
+    if: >-
+      github.event_name == 'workflow_dispatch'
+      || github.event.workflow_run.conclusion == 'success'
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+        with:
+          ref: main
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Upload CSV files to FTP
+        env:
+          FTP_HOST: ${{ secrets.FTP_HOST }}
+          FTP_PORT: ${{ secrets.FTP_PORT }}
+          FTP_USER: ${{ secrets.FTP_USER }}
+          FTP_PASSWORD: ${{ secrets.FTP_PASSWORD }}
+          FTP_REMOTE_DIR: ${{ secrets.FTP_REMOTE_DIR }}
+        run: python3 upload_data_to_ftp.py
