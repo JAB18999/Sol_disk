@@ -1,9 +1,12 @@
 #!/usr/bin/env python3
 """Upload every CSV file under DATA/ to the given FTP server.
 
-Uploads are atomic (STOR a temporary name, then RENAME) so a partial transfer
-never clobbers the previous good copy. Files are transferred in binary mode.
-The target FTP credentials can be set on the command line or via env vars.
+Before uploading, any CSV already present in the remote target directory is
+deleted, so the directory always ends up holding only the freshest set of
+files. Uploads are atomic (STOR a temporary name, then RENAME) so a partial
+transfer never leaves a half-written file behind. Files are transferred in
+binary mode. The target FTP credentials can be set on the command line or via
+env vars.
 
 Examples:
     python3 upload_data_to_ftp.py
@@ -83,6 +86,51 @@ def ensure_remote_dir(ftp: ftplib.FTP, remote_dir: str) -> None:
         current = target + "/"
 
 
+def list_remote_data_files(ftp: ftplib.FTP) -> list[str]:
+    """Return the CSV / leftover .part file names in the current remote directory."""
+    names: list[str] = []
+    try:
+        for name, facts in ftp.mlsd():
+            if facts.get("type") in ("dir", "cdir", "pdir"):
+                continue
+            names.append(name)
+    except (ftplib.error_perm, ftplib.error_proto):
+        # Server without MLSD support: fall back to a plain name list.
+        for path in ftp.nlst():
+            names.append(path.rsplit("/", 1)[-1])
+    return [
+        name
+        for name in names
+        if name.lower().endswith(".csv") or name.lower().endswith(".part")
+    ]
+
+
+def clean_remote_csv(ftp: ftplib.FTP) -> tuple[list[str], list[tuple[str, str]]]:
+    """Delete every CSV (and stale .part) file in the current remote directory."""
+    deleted: list[str] = []
+    failures: list[tuple[str, str]] = []
+    try:
+        stale = sorted(list_remote_data_files(ftp))
+    except (ftplib.Error, OSError) as exc:
+        print(f"[WARN] could not list remote directory: {type(exc).__name__}: {exc}", flush=True)
+        return deleted, failures
+
+    if not stale:
+        print("Remote directory: no old CSV files to remove", flush=True)
+        return deleted, failures
+
+    print(f"Remote directory: removing {len(stale)} old file(s)", flush=True)
+    for name in stale:
+        try:
+            ftp.delete(name)
+            deleted.append(name)
+            print(f"[DEL] {name}", flush=True)
+        except (ftplib.Error, OSError) as exc:
+            failures.append((name, str(exc)))
+            print(f"[WARN] could not delete {name}: {type(exc).__name__}: {exc}", flush=True)
+    return deleted, failures
+
+
 def upload_one(ftp: ftplib.FTP, local_path: Path) -> str:
     """Atomically upload one file; returns the final remote filename."""
     if local_path.stat().st_size == 0:
@@ -145,6 +193,10 @@ def main() -> int:
         print(f"Remote cwd: {ftp.pwd()}", flush=True)
         print(flush=True)
 
+        # Wipe the previous batch first, so no stale file survives this run.
+        deleted, delete_failures = clean_remote_csv(ftp)
+        print(flush=True)
+
         successes: list[str] = []
         failures: list[tuple[str, str]] = []
 
@@ -176,11 +228,17 @@ def main() -> int:
                         time.sleep(RETRY_BACKOFF_SECONDS * attempt)
 
         print(flush=True)
+        print(f"Removed old files: {len(deleted)}", flush=True)
         print(f"Success: {len(successes)}/{len(csv_files)}", flush=True)
-        if failures:
-            print("Failures:", flush=True)
-            for name, err in failures:
-                print(f"  - {name}: {err}", flush=True)
+        if failures or delete_failures:
+            if delete_failures:
+                print("Files that could not be removed:", flush=True)
+                for name, err in delete_failures:
+                    print(f"  - {name}: {err}", flush=True)
+            if failures:
+                print("Failures:", flush=True)
+                for name, err in failures:
+                    print(f"  - {name}: {err}", flush=True)
             return 1
         return 0
     finally:
