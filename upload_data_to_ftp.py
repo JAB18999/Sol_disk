@@ -13,6 +13,10 @@ untouched and the temporary files are cleaned up, so a failed run never leaves
 bad data behind. Files are transferred in binary mode. Credentials can be set
 on the command line or via env vars.
 
+This version supports resumable upload semantics for the temporary `.part` files:
+if a remote `.part` file already exists with the same or smaller size, only the
+remaining bytes are uploaded. This avoids re-sending the full file on every run.
+
 Examples:
     python3 upload_data_to_ftp.py
     python3 upload_data_to_ftp.py --remote-dir /sol_disk
@@ -113,8 +117,20 @@ def temp_name_for(remote_name: str) -> str:
     return f".{remote_name}.part"
 
 
+def remote_file_size(ftp: ftplib.FTP, remote_name: str) -> int:
+    """Return the remote file size in bytes, or 0 when it does not exist."""
+    try:
+        size = ftp.size(remote_name)
+        return size if size is not None else 0
+    except (ftplib.Error, OSError):
+        return 0
+
+
 def upload_temp(ftp: ftplib.FTP, local_path: Path) -> str:
-    """Upload a local file to a temporary `.part` name on the remote server."""
+    """Upload a local file to a temporary `.part` name on the remote server.
+
+    If the remote `.part` file already exists, resume from its current byte length.
+    """
     if local_path.stat().st_size == 0:
         raise RuntimeError(f"{local_path.name} is empty, skipping")
     with local_path.open("rb") as probe:
@@ -122,8 +138,37 @@ def upload_temp(ftp: ftplib.FTP, local_path: Path) -> str:
             raise RuntimeError(f"{local_path.name} produced no bytes")
 
     temp = temp_name_for(local_path.name)
+    local_size = local_path.stat().st_size
+    remote_size_bytes = remote_file_size(ftp, temp)
+
+    if remote_size_bytes > local_size:
+        raise RuntimeError(
+            f"Remote temp file {temp} is larger than local file {local_path.name}; "
+            "cannot resume safely. Remove the stale temp file and retry."
+        )
+
+    if remote_size_bytes == local_size:
+        print(f"[SKIP] {local_path.name}: remote temp already complete ({local_size:,} bytes)", flush=True)
+        return temp
+
+    print(
+        f"[UPLOAD] {local_path.name}: local={local_size:,} bytes, remote_temp={remote_size_bytes:,} bytes",
+        flush=True,
+    )
+
     with local_path.open("rb") as source:
-        ftp.storbinary(f"STOR {temp}", source)
+        if remote_size_bytes > 0:
+            source.seek(remote_size_bytes)
+            ftp.storbinary(f"APPE {temp}", source)
+        else:
+            ftp.storbinary(f"STOR {temp}", source)
+
+    final_remote_size = remote_file_size(ftp, temp)
+    if final_remote_size != local_size:
+        raise RuntimeError(
+            f"Upload of {local_path.name} did not complete: local={local_size}, remote={final_remote_size}"
+        )
+
     return temp
 
 
@@ -193,7 +238,7 @@ def main() -> int:
         # ------------------------------------------------------------------
         # Phase 1: upload every local file to a temporary .part name.
         # ------------------------------------------------------------------
-        print("Phase 1: upload new files as temporary .part files", flush=True)
+        print("Phase 1: upload new files as temporary .part files (resume if already started)", flush=True)
         for local_path in csv_files:
             temp = temp_name_for(local_path.name)
             final = local_path.name
@@ -210,7 +255,7 @@ def main() -> int:
                     pending_renames.append((temp, final))
                     print(f"[TEMP] {local_path.name} -> {temp}", flush=True)
                     break
-                except (ftplib.Error, OSError, socket.error) as exc:
+                except (ftplib.Error, OSError, socket.error, RuntimeError) as exc:
                     print(
                         f"[RETRY {attempt}/{MAX_RETRIES}] {local_path.name}: "
                         f"{type(exc).__name__}: {exc}",
