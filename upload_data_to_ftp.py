@@ -16,8 +16,7 @@ on the command line or via env vars.
 Examples:
     python3 upload_data_to_ftp.py
     python3 upload_data_to_ftp.py --remote-dir /sol_disk
-    python3 upload_data_to_ftp.py --host 119.91.226.180 --port 21 \\
-        --user test --password test
+    python3 upload_data_to_ftp.py --host 119.91.226.180 --port 21 --user test --password test
 
 Environment variables (lower priority than CLI flags):
     FTP_HOST, FTP_PORT, FTP_USER, FTP_PASSWORD, FTP_REMOTE_DIR
@@ -38,8 +37,8 @@ DATA_DIR = ROOT / "DATA"
 
 DEFAULT_HOST = "119.91.226.180"
 DEFAULT_PORT = 2121
-DEFAULT_USER = "test"
-DEFAULT_PASSWORD = "test"
+DEFAULT_USER = "ftpuser"
+DEFAULT_PASSWORD = "1234567890987654321"
 
 CONNECT_TIMEOUT_SECONDS = 15
 READ_TIMEOUT_SECONDS = 30
