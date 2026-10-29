@@ -8,6 +8,10 @@ partially-updated state:
 2. Delete the old/stale CSV and `.part` files on the server.
 3. Rename all temporary `.part` files to their final names.
 
+A fourth opportunistic safeguard was added to avoid unnecessary re-uploads: when
+a remote file already exists and its SHA-256 digest matches the local file, we
+skip the transfer entirely instead of rewriting the same CSV again.
+
 If any step fails before the final rename, the old remote files are left
 untouched and the temporary files are cleaned up, so a failed run never leaves
 bad data behind. Files are transferred in binary mode. Credentials can be set
@@ -26,6 +30,8 @@ from __future__ import annotations
 
 import argparse
 import ftplib
+import hashlib
+import io
 import os
 import socket
 import sys
@@ -113,6 +119,46 @@ def temp_name_for(remote_name: str) -> str:
     return f".{remote_name}.part"
 
 
+def sha256_bytes(payload: bytes) -> str:
+    return hashlib.sha256(payload).hexdigest()
+
+
+def download_remote_file(ftp: ftplib.FTP, remote_name: str) -> bytes:
+    """Return the full contents of a remote FTP file as bytes."""
+    buffer = io.BytesIO()
+
+    def _write(chunk: bytes) -> int:
+        buffer.write(chunk)
+        return len(chunk)
+
+    ftp.retrbinary(f"RETR {remote_name}", _write)
+    return buffer.getvalue()
+
+
+def remote_file_matches(local_path: Path, ftp: ftplib.FTP, remote_name: str) -> bool:
+    """Return True when the local file has identical contents to the remote file."""
+    try:
+        remote_size = ftp.size(remote_name)
+    except (ftplib.Error, OSError):
+        return False
+
+    try:
+        local_size = local_path.stat().st_size
+    except OSError:
+        return False
+    if local_size != remote_size:
+        return False
+
+    try:
+        with local_path.open("rb") as source:
+            local_bytes = source.read()
+        remote_bytes = download_remote_file(ftp, remote_name)
+    except (OSError, ftplib.Error):
+        return False
+
+    return sha256_bytes(local_bytes) == sha256_bytes(remote_bytes)
+
+
 def upload_temp(ftp: ftplib.FTP, local_path: Path) -> str:
     """Upload a local file to a temporary `.part` name on the remote server."""
     if local_path.stat().st_size == 0:
@@ -188,14 +234,11 @@ def main() -> int:
 
     ftp: ftplib.FTP | None = None
     pending_renames: list[tuple[str, str]] = []  # (temp_name, final_name)
+    protected_final_names: set[str] = set()
 
     try:
-        # ------------------------------------------------------------------
-        # Phase 1: upload every local file to a temporary .part name.
-        # ------------------------------------------------------------------
-        print("Phase 1: upload new files as temporary .part files", flush=True)
+        print("Phase 1: sync local files to remote, skipping unchanged content", flush=True)
         for local_path in csv_files:
-            temp = temp_name_for(local_path.name)
             final = local_path.name
             for attempt in range(1, MAX_RETRIES + 1):
                 try:
@@ -206,7 +249,12 @@ def main() -> int:
                             pass
                     ftp = connect(args)
                     ensure_cwd(ftp, args)
-                    upload_temp(ftp, local_path)
+                    remote_names = set(list_remote_data_files(ftp))
+                    if final in remote_names and remote_file_matches(local_path, ftp, final):
+                        protected_final_names.add(final)
+                        print(f"[SKIP] {final}: identical remote content, no upload needed", flush=True)
+                        break
+                    temp = upload_temp(ftp, local_path)
                     pending_renames.append((temp, final))
                     print(f"[TEMP] {local_path.name} -> {temp}", flush=True)
                     break
@@ -232,16 +280,13 @@ def main() -> int:
 
         print(flush=True)
 
-        # ------------------------------------------------------------------
-        # Phase 2: remove old CSVs and stale .part files (protect new temps).
-        # ------------------------------------------------------------------
         protected_temps = {temp for temp, _ in pending_renames}
         stale_names: list[str] = []
         try:
             stale_names = sorted(
                 name
                 for name in list_remote_data_files(ftp)  # type: ignore[arg-type]
-                if name not in protected_temps
+                if name not in protected_temps and name not in protected_final_names
             )
         except (ftplib.Error, OSError) as exc:
             print(f"[FAIL] could not list remote directory for cleanup: {type(exc).__name__}: {exc}", flush=True)
@@ -265,9 +310,6 @@ def main() -> int:
 
         print(flush=True)
 
-        # ------------------------------------------------------------------
-        # Phase 3: atomically rename all .part files to final names.
-        # ------------------------------------------------------------------
         print(f"Phase 3: rename {len(pending_renames)} temporary file(s) to final names", flush=True)
         rename_failures: list[tuple[str, str]] = []
         for temp, final in pending_renames:
@@ -281,6 +323,7 @@ def main() -> int:
         print(flush=True)
         print(f"Removed old files: {len(deleted)}", flush=True)
         print(f"Renamed new files: {len(pending_renames) - len(rename_failures)}/{len(pending_renames)}", flush=True)
+        print(f"Skipped unchanged files: {len(protected_final_names)}", flush=True)
 
         if rename_failures:
             print("Files left as .part (manual rename required):", flush=True)
