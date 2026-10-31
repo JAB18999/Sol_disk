@@ -27,62 +27,41 @@
     "max_retries": 6,
     "note": "Single-process pacing, Retry-After-aware retry, randomized jitter, and pagination anti-ban throttling."
   },
-  "last_successful_data_update_beijing": "2026-10-31T09:16:05.610318+08:00",
+  "last_successful_data_update_beijing": "2026-10-31T09:31:53.390752+08:00",
   "timeframes": {
     "5m": {
       "bar": "5m",
-      "row_count": 103642,
-      "start_timestamp_ms": "1762305300000",
+      "row_count": 103639,
+      "start_timestamp_ms": "1762306200000",
       "end_timestamp_ms": "1793397600000",
-      "start_time_beijing": "2025-11-05T09:15:00+08:00",
+      "start_time_beijing": "2025-11-05T09:30:00+08:00",
       "end_time_beijing": "2026-10-31T06:00:00+08:00",
       "expected_step_ms": 300000,
-      "unique_timestamp_count": 103642,
+      "unique_timestamp_count": 103639,
       "interval_anomaly_count": 0,
       "all_confirmed": true,
       "csv_filename": "SOL-USDT-SWAP_5m_103680_confirmed.csv",
       "update": {
         "mode": "incremental",
         "reason": "incremental_recent_overlap",
-        "new_candles": 86,
+        "new_candles": 41,
         "revised_candles": 0,
         "api_requests": 1
       },
-      "csv_sha256": "53171aab003cb204c70b42a4049390ff816ee0c655024cb6ce13778376c26931"
+      "csv_sha256": "31c11ece7a2ee18da4c77ceed92d661921e9091a5e7d867d9f3cd48c24acb9bc"
     },
     "15m": {
       "bar": "15m",
-      "row_count": 34548,
-      "start_timestamp_ms": "1762305300000",
+      "row_count": 34547,
+      "start_timestamp_ms": "1762306200000",
       "end_timestamp_ms": "1793397600000",
-      "start_time_beijing": "2025-11-05T09:15:00+08:00",
+      "start_time_beijing": "2025-11-05T09:30:00+08:00",
       "end_time_beijing": "2026-10-31T06:00:00+08:00",
       "expected_step_ms": 900000,
-      "unique_timestamp_count": 34548,
+      "unique_timestamp_count": 34547,
       "interval_anomaly_count": 0,
       "all_confirmed": true,
       "csv_filename": "SOL-USDT-SWAP_15m_34560_confirmed.csv",
-      "update": {
-        "mode": "incremental",
-        "reason": "incremental_recent_overlap",
-        "new_candles": 28,
-        "revised_candles": 0,
-        "api_requests": 1
-      },
-      "csv_sha256": "399bc9b3760e466a6e1ac3a2ac6b014f07868777acfba5a34471a7827f15faa2"
-    },
-    "30m": {
-      "bar": "30m",
-      "row_count": 17275,
-      "start_timestamp_ms": "1762304400000",
-      "end_timestamp_ms": "1793397600000",
-      "start_time_beijing": "2025-11-05T09:00:00+08:00",
-      "end_time_beijing": "2026-10-31T06:00:00+08:00",
-      "expected_step_ms": 1800000,
-      "unique_timestamp_count": 17275,
-      "interval_anomaly_count": 0,
-      "all_confirmed": true,
-      "csv_filename": "SOL-USDT-SWAP_30m_17280_confirmed.csv",
       "update": {
         "mode": "incremental",
         "reason": "incremental_recent_overlap",
@@ -90,7 +69,28 @@
         "revised_candles": 0,
         "api_requests": 1
       },
-      "csv_sha256": "937115ecd37d9c00342a31b428b4fdb74f9b970e4a7d6a1e594c614b80486c0b"
+      "csv_sha256": "fc79c56203fbfb6ba1de7ca50f4eb178be5c58f864e6f09437466c93a3371c6e"
+    },
+    "30m": {
+      "bar": "30m",
+      "row_count": 17274,
+      "start_timestamp_ms": "1762306200000",
+      "end_timestamp_ms": "1793397600000",
+      "start_time_beijing": "2025-11-05T09:30:00+08:00",
+      "end_time_beijing": "2026-10-31T06:00:00+08:00",
+      "expected_step_ms": 1800000,
+      "unique_timestamp_count": 17274,
+      "interval_anomaly_count": 0,
+      "all_confirmed": true,
+      "csv_filename": "SOL-USDT-SWAP_30m_17280_confirmed.csv",
+      "update": {
+        "mode": "incremental",
+        "reason": "incremental_recent_overlap",
+        "new_candles": 6,
+        "revised_candles": 0,
+        "api_requests": 1
+      },
+      "csv_sha256": "aa5449517018d0119d9c05027619902957c30efed78695bcf192f87bec79f0c0"
     },
     "1H": {
       "bar": "1H",
@@ -107,7 +107,7 @@
       "update": {
         "mode": "incremental",
         "reason": "incremental_recent_overlap",
-        "new_candles": 6,
+        "new_candles": 2,
         "revised_candles": 0,
         "api_requests": 1
       },
@@ -128,7 +128,7 @@
       "update": {
         "mode": "incremental",
         "reason": "incremental_recent_overlap",
-        "new_candles": 2,
+        "new_candles": 0,
         "revised_candles": 0,
         "api_requests": 1
       },
