@@ -13,9 +13,6 @@ on:
           - validate
           - test
           - all
-  push:
-    branches:
-      - feature/ma-strategy-backtest
 
 jobs:
   backtest:
@@ -36,7 +33,7 @@ jobs:
 
       - name: Run backtest
         run: |
-          python research/ma-strategy/backtest/backtest.py --mode ${{ inputs.mode }} --data-dir DATA
+          python research/ma-strategy/backtest/backtest.py --mode ${{ inputs.mode || 'all' }} --data-dir DATA
 
       - name: Upload backtest artifacts
         uses: actions/upload-artifact@v4
