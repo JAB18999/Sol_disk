@@ -27,7 +27,7 @@ import config  # noqa: E402
 
 def _parse_beijing(ts) -> pd.Timestamp:
     """把北京时间字符串解析为带时区的 pd.Timestamp（Asia/Shanghai）。"""
-    return pd.Timestamp(ts).tz_localize(config.TIMEZONE)
+    return pd.to_datetime(ts, utc=True).tz_convert(config.TIMEZONE)
 
 
 def load_grain(data_dir: str, grain: Dict) -> Tuple[pd.DataFrame, Dict]:
