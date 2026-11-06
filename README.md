@@ -1,92 +1,60 @@
-# SOL-USDT-SWAP · OKX 永续合约 K 线数据
+# SOL_disk
 
-本仓库保存 OKX `SOL-USDT-SWAP`（SOL USDT 本位永续合约）的已收盘 OHLCV K 线数据，并通过 GitHub Actions 每 8 小时增量更新一次（北京时间 00:07、08:07、16:07）。
+OKX SOL-USDT-SWAP 永续合约市场数据仓库。全部数据来自 OKX 公开 API（无需 API Key），通过 GitHub Actions 每 6 小时增量更新一次，也可手动触发。
 
-> **时区标准：本仓库全部可读时间均使用北京时间（Asia/Shanghai，UTC+08:00）。**
-> 数据仅用于研究、回测和分析，不构成交易建议或收益保证。
+## 数据文件（`DATA/`）
 
-## 数据文件
+K 线（已收盘 OHLCV，北京时间 UTC+8，每个粒度保留最新 360 天）：
 
-每个 CSV 始终保留最新 **360 天**的已收盘 K 线，按 K 线开盘时间升序排列：
+| 文件 | 粒度 | 期望根数（360 天） | 字段 |
+|---|---|---:|---|
+| `SOL-USDT-SWAP_5m_103680_confirmed.csv` | 5m | 103,680 | `open_time_beijing, timestamp_ms, open, high, low, close, vol, volCcy, volCcyQuote, confirm` |
+| `SOL-USDT-SWAP_15m_34560_confirmed.csv` | 15m | 34,560 | 同上 |
+| `SOL-USDT-SWAP_30m_17280_confirmed.csv` | 30m | 17,280 | 同上 |
+| `SOL-USDT-SWAP_1H_8640_confirmed.csv` | 1H | 8,640 | 同上 |
+| `SOL-USDT-SWAP_2H_4320_confirmed.csv` | 2H | 4,320 | 同上 |
+| `SOL-USDT-SWAP_4H_2160_confirmed.csv` | 4H | 2,160 | 同上 |
 
-| 周期 | 文件 | 行数 |
-|---|---|---:|
-| 5 分钟 | `DATA/SOL-USDT-SWAP_5m_103680_confirmed.csv` | 103,680 |
-| 15 分钟 | `DATA/SOL-USDT-SWAP_15m_34560_confirmed.csv` | 34,560 |
-| 30 分钟 | `DATA/SOL-USDT-SWAP_30m_17280_confirmed.csv` | 17,280 |
-| 1 小时 | `DATA/SOL-USDT-SWAP_1H_8640_confirmed.csv` | 8,640 |
-| 2 小时 | `DATA/SOL-USDT-SWAP_2H_4320_confirmed.csv` | 4,320 |
+- `timestamp_ms`: Unix Epoch 毫秒（时区无关）
+- `open_time_beijing`: 对应的北京时间字符串（`YYYY-MM-DD HH:MM:SS`）
+- `confirm`: OKX 返回的已收盘标记（“1”表示已收盘）
 
-`DATA/metadata.json` 记录每个周期的数据覆盖范围、校验信息、更新模式、文件 SHA-256 和统一时区定义。
+资金费率（独立文件，保留最新 360 天，OKX 通常每 8 小时结算一次，约 1,080 条记录）：
 
-## 统一时间字段
+| 文件 | 说明 |
+|---|---|
+| `SOL-USDT-SWAP_funding_rate_confirmed.csv` | `funding_time_beijing, funding_time_ms, funding_rate, instId, funding_rate_raw` |
 
-CSV 文件字段如下：
+- `funding_time_ms`: 资金费率结算时间的 Unix Epoch 毫秒（时区无关）
+- `funding_time_beijing`: 对应的北京时间 ISO 8601 字符串
+- `funding_rate`: 资金费率数值
+- `funding_rate_raw`: OKX 返回原始记录的 JSON 字符串（可追溯）
 
-```text
-open_time_beijing, timestamp_ms,
-open, high, low, close,
-vol, volCcy, volCcyQuote, confirm
-```
+元数据：
 
-- `open_time_beijing`：K 线开盘时间，格式为 ISO 8601，固定使用北京时间，例如 `2026-09-18T23:15:00+08:00`。
-- `timestamp_ms`：同一开盘时刻的 Unix Epoch 毫秒值。这是与时区无关的绝对时间键，**不加 8 小时**，用于排序、去重、连续性校验和跨系统对齐。
-- `vol`、`volCcy`、`volCcyQuote`：保留 OKX K 线 API 的原始字段名称和数值。
-- `confirm=1`：该 K 线已经收盘；未收盘的当前 K 线不会写入 CSV。
+| 文件 | 说明 |
+|---|---|
+| `DATA/metadata.json` | `schema_version` 3.1，包含各 K 线粒度与资金费率的行数、起止时间、步长、去重后唯一时间戳数、区间异常数、是否全已收盘、SHA-256 校验和及每次更新的增量信息（模式/原因/新增/修订/API 请求数） |
 
-因此，所有供人阅读、展示和记录的日期时间均为东八区北京时间；机器时间键只保留标准 Unix Epoch 表示，避免同一根 K 线被错误偏移 8 小时。
+## 更新机制
 
-## 增量更新脚本
+- 增量优先：本地已有数据时，仅拉取最新一批记录，与本地合并、去重、连续性校验，再裁剪为最新 360 天。
+- 全量回填：本地缺失对应 CSV 时，从 OKX 回填最近 360 天。
+- 原子写入：每个 CSV 先写临时文件再 `os.replace` 替换，避免部分写入。
+- 4H 粒度与 5m/15m/30m/1H/2H 共享完全相同的增量/全量逻辑（`fetch_recent_confirmed` / `fetch_full_history` / `merge_recent`）。
+- 资金费率使用独立增量逻辑（分页拉取 → 合并/去重 → 裁剪 360 天）。
 
-脚本：[`download_okx_sol_perp_klines.py`](download_okx_sol_perp_klines.py)（数据统一存放在 [`DATA/`](DATA/) 目录，更新器对该目录内的 CSV 与 `metadata.json` 做增量维护）
+## 触发方式
 
-```bash
-python3 download_okx_sol_perp_klines.py
-```
+- 定时：GitHub Actions 每 6 小时运行一次（`cron: '0 */6 * * *'`）。
+- 手动：在 Actions 页面使用 `workflow_dispatch` 触发。
+- 本地：`python download_okx_sol_perp_klines.py`（需先 `pip install -r requirements.txt`）。
 
-### 运行逻辑
+## 依赖
 
-- **首次运行、文件缺失、CSV 损坏或数据断档超出近期窗口时**：自动回退为完整历史回填，下载各周期最新 360 天的已收盘 K 线，并以北京时间格式写入。
-- **正常后续运行**：每个周期只请求最近 300 根 K 线，和本地数据做重叠合并、去重、连续性校验，再裁剪为最新 360 天。
-- 为修正近期数据，最近 300 根已收盘 K 线会参与重叠覆盖，不只追加时间戳更大的行。
-- 若没有新的或被修订的已收盘 K 线，CSV 与 `metadata.json` 不会被改写。
-- 旧版同时包含 `open_time_utc` 与 `open_time_shanghai` 的 CSV，会在下一次成功运行时自动迁移为统一的北京时区字段。
+- Python 3.9+
+- `requests`（见 `requirements.txt`）
 
-常用命令：
+## GitHub Secrets
 
-```bash
-# 仅检查 API、合并逻辑和完整性；不写入文件
-python3 download_okx_sol_perp_klines.py --dry-run
-
-# 无视本地数据，强制重新回填每个周期最新 360 天的 K 线
-python3 download_okx_sol_perp_klines.py --full-refresh
-```
-
-脚本仅依赖 Python 标准库。
-
-## 请求节流与稳定性
-
-更新器采用合规的限流保护，不使用代理轮换、IP 轮换或伪造多身份：
-
-- 单进程全局节流：最少间隔 0.25 秒，即最多约 4 次请求/秒；
-- 429 限流响应会执行带随机抖动的指数退避，并优先尊重 `Retry-After`；
-- 400、401、403、404 等参数/权限问题会立即停止，不会重复撞击接口；
-- 5xx、超时和网络错误最多重试 6 次；
-- `.okx_candle_update.lock` 防止本地重复任务并发执行；
-- CSV 与 metadata 使用临时文件加原子替换，避免中途失败写坏旧数据；
-- GitHub Actions 使用并发组，避免计划任务与手动任务重叠。
-
-## GitHub Actions：每 8 小时更新
-
-工作流文件：[`.github/workflows/update-okx-sol-candles.yml`](.github/workflows/update-okx-sol-candles.yml)
-
-- GitHub Actions 的 cron 语法按 UTC 解释；`7 */8 * * *` 对应北京时间每天 `00:07、08:07、16:07`；
-- 工作流和 Python 进程均设置 `TZ=Asia/Shanghai`；
-- 第 7 分钟为新收盘 K 线留出短暂确认缓冲；
-- 支持在 Actions 页面手动运行；手动运行时可选择 `full_refresh=true`；
-- 使用 GitHub Actions 内置 `GITHUB_TOKEN` 和 `contents: write` 权限，仅在数据实际变化时提交 CSV 与 `metadata.json`；
-- GitHub 的 schedule 属于尽力调度，可能延迟，因此不应用于对秒级时效有要求的实时交易系统。
-
-## 免责声明
-
-历史行情存在 API 延迟、修订、网络失败和交易所数据口径变化等风险。使用本仓库数据进行任何交易、研究或自动化决策前，应自行验证数据质量、费用、滑点、资金费和风险控制假设。
+OKX 公开 API 无需 API Key，脚本不依赖任何私有密钥。GitHub Actions 推送使用内置的 `secrets.GITHUB_TOKEN`（`permissions: contents: write`），无需 PM 额外配置 Secret。如需使用个人访问 Token 推送，可在仓库 Secrets 中添加并修改 workflow 中的 `token` 引用。
