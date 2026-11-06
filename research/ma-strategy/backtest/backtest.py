@@ -43,7 +43,7 @@ def load_grain(data_dir: str, grain: Dict) -> Tuple[pd.DataFrame, Dict]:
     df.columns = [str(c).strip().lower() for c in df.columns]
     if "open_time_beijing" not in df.columns:
         raise ValueError(f"{path} 缺少 open_time_beijing 列")
-    df["open_time_beijing"] = df["open_time_beijing"].apply(_parse_beijing)
+    df["open_time_beijing"] = pd.to_datetime(df["open_time_beijing"], utc=True).dt.tz_convert(config.TIMEZONE)
     df = df.sort_values("open_time_beijing").reset_index(drop=True)
     for col in ("open", "high", "low", "close"):
         if col in df.columns:
