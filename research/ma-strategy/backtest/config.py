@@ -18,11 +18,11 @@ ARTIFACT_DIR = os.path.join(ROOT_DIR, "research", "ma-strategy", "backtest", "ar
 
 # 粒度定义：csv 文件名、分钟数、年化根数
 GRAIN: List[Dict] = [
-    {"name": "5m", "filename": "SOL-USDT-SWAP-5m.csv", "minutes": 5,  "bars_per_year": 365 * 24 * 12},
-    {"name": "15m", "filename": "SOL-USDT-SWAP-15m.csv", "minutes": 15, "bars_per_year": 365 * 24 * 4},
-    {"name": "30m", "filename": "SOL-USDT-SWAP-30m.csv", "minutes": 30, "bars_per_year": 365 * 24 * 2},
-    {"name": "1H",  "filename": "SOL-USDT-SWAP-1H.csv",  "minutes": 60, "bars_per_year": 365 * 24},
-    {"name": "2H",  "filename": "SOL-USDT-SWAP-2H.csv",  "minutes": 120, "bars_per_year": 365 * 12},
+    {"name": "5m", "filename": "SOL-USDT-SWAP_5m_103680_confirmed.csv", "minutes": 5,  "bars_per_year": 365 * 24 * 12},
+    {"name": "15m", "filename": "SOL-USDT-SWAP_15m_34560_confirmed.csv", "minutes": 15, "bars_per_year": 365 * 24 * 4},
+    {"name": "30m", "filename": "SOL-USDT-SWAP_30m_17280_confirmed.csv", "minutes": 30, "bars_per_year": 365 * 24 * 2},
+    {"name": "1H",  "filename": "SOL-USDT-SWAP_1H_8640_confirmed.csv",  "minutes": 60, "bars_per_year": 365 * 24},
+    {"name": "2H",  "filename": "SOL-USDT-SWAP_2H_4320_confirmed.csv",  "minutes": 120, "bars_per_year": 365 * 12},
 ]
 
 # 参数空间：20 组（5 粒度 × 每粒度 4 组），严格按预注册表格
@@ -89,7 +89,7 @@ def apply_rule_a(param_grid: List[Dict] = None) -> List[Dict]:
         param_grid = PARAM_GRID
     filtered = []
     for p in param_grid:
-        h = slow_period_hours(p["fast"], p[slow"], p["grain"])
+        h = slow_period_hours(p["fast"], p["slow"], p["grain"])
         if 12.0 <= h <= 48.0:
             filtered.append(p)
     return filtered
