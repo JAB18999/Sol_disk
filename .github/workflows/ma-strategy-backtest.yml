@@ -33,10 +33,11 @@ jobs:
 
       - name: Run backtest
         run: |
-          python research/ma-strategy/backtest/backtest.py --mode ${{ inputs.mode || 'all' }} --data-dir DATA
+          python research/ma-strategy/backtest/backtest.py --mode ${{ inputs.mode || 'all' }} --data-dir DATA > research/ma-strategy/backtest/artifacts/backtest.log 2>&1
 
       - name: Upload backtest artifacts
         uses: actions/upload-artifact@v4
+        if: always()
         with:
           name: ma-strategy-backtest-results
           path: research/ma-strategy/backtest/artifacts/
