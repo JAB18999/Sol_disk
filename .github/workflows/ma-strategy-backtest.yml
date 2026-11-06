@@ -33,7 +33,12 @@ jobs:
 
       - name: Run backtest
         run: |
+          mkdir -p research/ma-strategy/backtest/artifacts
+          set +e
           python research/ma-strategy/backtest/backtest.py --mode ${{ inputs.mode || 'all' }} --data-dir DATA > research/ma-strategy/backtest/artifacts/backtest.log 2>&1
+          code=$?
+          echo "python_exit_code=$code" >> research/ma-strategy/backtest/artifacts/backtest.log
+          exit $code
 
       - name: Upload backtest artifacts
         uses: actions/upload-artifact@v4
