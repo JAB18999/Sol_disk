@@ -26,8 +26,11 @@ import config  # noqa: E402
 
 
 def _parse_beijing(ts) -> pd.Timestamp:
-    """把北京时间字符串解析为带时区的 pd.Timestamp（Asia/Shanghai）。"""
-    return pd.to_datetime(ts, utc=True).tz_convert(config.TIMEZONE)
+    """把 open_time_beijing 解析为 Asia/Shanghai 时区的 Timestamp，兼容带偏移与裸时间。"""
+    parsed = pd.to_datetime(ts)
+    if parsed.tzinfo is None:
+        return parsed.tz_localize(config.TIMEZONE)
+    return parsed.tz_convert(config.TIMEZONE)
 
 
 def load_grain(data_dir: str, grain: Dict) -> Tuple[pd.DataFrame, Dict]:
